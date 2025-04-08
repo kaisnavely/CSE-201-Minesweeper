@@ -5,42 +5,29 @@ import java.awt.EventQueue;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 
-/**
- * Java Minesweeper Game
- *
- * Author: Jan Bodnar
- * Website: http://zetcode.com
- */
-
 public class Minesweeper extends JFrame {
 
-    private JLabel statusbar;
+    private final JLabel statusbar;
 
     public Minesweeper() {
-
+        statusbar = new JLabel("");
         initUI();
     }
 
     private void initUI() {
-
-        statusbar = new JLabel("");
         add(statusbar, BorderLayout.SOUTH);
-
         add(new Board(statusbar));
 
+        setTitle("Minesweeper");
         setResizable(false);
         pack();
-
-        setTitle("Minesweeper");
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
 
     public static void main(String[] args) {
-
         EventQueue.invokeLater(() -> {
-
-            var ex = new Minesweeper();
+            Minesweeper ex = new Minesweeper();
             ex.setVisible(true);
         });
     }
