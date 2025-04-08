@@ -10,7 +10,7 @@ public class Minesweeper extends JFrame {
     private final JLabel statusbar;
 
     public Minesweeper() {
-        statusbar = new JLabel("");
+        statusbar = new JLabel(""); //creates a new JLabel and assigns it to status bar
         initUI();
     }
 
