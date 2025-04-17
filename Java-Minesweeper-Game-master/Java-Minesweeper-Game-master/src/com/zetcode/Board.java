@@ -161,6 +161,8 @@ public class Board extends JPanel {
                         cell = DRAW_COVER;
                         uncover++;
                     }
+                    
+                 
                 }
 
                 g.drawImage(img[cell], j * CELL_SIZE, i * CELL_SIZE, this);
@@ -212,18 +214,27 @@ public class Board extends JPanel {
                     statusbar.setText("Mines: " + minesLeft + " | Coins: " + coinCount);
                 }
             } else {
+              if (cell == COVERED_TREASURE_CELL) {
+                field[index] -= COVER_FOR_CELL;
+                coinCount++;
+                doRepaint = true;
+                statusbar.setText("Mines: " + minesLeft + " | Coins: " + coinCount);
+                repaint(); // Ensure the change is immediately visible
+                return;
+            }
+              
                 if (cell > COVERED_MINE_CELL) return;
 
                 if (cell == COVERED_TREASURE_CELL) {
-                    field[index] -= COVER_FOR_CELL;
-                    coinCount++;
-                    doRepaint = true;
-                    statusbar.setText("Mines: " + minesLeft + " | Coins: " + coinCount);
-                    return;
+                  System.out.println("Direct click on covered treasure at: " + index);
+                  revealCell(index); // Use revealCell for direct clicks as well
+                  doRepaint = true;
+                  return;
                 }
 
                 if (cell > MINE_CELL && cell < MARKED_MINE_CELL) {
-                    field[index] -= COVER_FOR_CELL;
+                  System.out.println("Click on covered non-mine at: " + index);
+                    revealCell(index);
                     doRepaint = true;
 
                     if (field[index] == MINE_CELL) {
@@ -235,6 +246,7 @@ public class Board extends JPanel {
                             inGame = false;
                         }
                     } else if (field[index] == EMPTY_CELL) {
+                      System.out.println("Found empty cell click, calling findEmptyCells from mousePressed");
                         findEmptyCells(index);
                     }
                 }
