@@ -125,12 +125,46 @@ public class Board extends JPanel {
     }
 
     private void revealCell(int pos) {
-        if (field[pos] > MINE_CELL) {
-            field[pos] -= COVER_FOR_CELL;
-            if (field[pos] == EMPTY_CELL) {
-                findEmptyCells(pos);
-            }
-        }
+      // Only reveal cells that are covered and not marked
+      if (field[pos] > MINE_CELL && field[pos] < MARKED_MINE_CELL) {
+          int originalValue = field[pos]; // Store the covered value
+
+          // Reveal the cell by subtracting the cover value
+          field[pos] -= COVER_FOR_CELL;
+
+          // --- ADD COIN CHECK HERE ---
+          if (field[pos] == TREASURE_CELL) {
+              System.out.println("Revealed treasure via revealCell at: " + pos + " (was " + originalValue + ")"); // Debug
+              coinCount++;
+              updateStatusbar(); // Update status bar when coin is found
+              // Treasure cell revealed, no further action needed for this specific cell
+              // (it won't trigger findEmptyCells)
+          }
+          // --- END COIN CHECK ---
+
+          // If the revealed cell is now empty, trigger chain reaction
+          else if (field[pos] == EMPTY_CELL) {
+               System.out.println("Found empty cell via revealCell, calling findEmptyCells for: " + pos); // Debug
+               findEmptyCells(pos); // Start revealing neighbors
+          }
+          // If it's a numbered cell (1-8) or a mine (9), revealing stops here.
+           else if (field[pos] == MINE_CELL) {
+               // Mine hit during reveal process (likely via findEmptyCells)
+               // The game over logic is handled elsewhere (paintComponent / mousePressed)
+               System.out.println("Mine revealed via revealCell at: " + pos); // Debug
+           }
+      }
+  }
+    
+ // Helper method to update status bar text
+    private void updateStatusbar() {
+         if (inGame) {
+             statusbar.setText("Mines: " + minesLeft + " | Coins: " + coinCount);
+         } else {
+             // Optional: Differentiate between win/loss messages if needed after game ends
+             // This will be overwritten by paintComponent's win/loss check anyway
+              statusbar.setText("Game Over. Mines: " + minesLeft + " | Coins: " + coinCount);
+         }
     }
 
     @Override
@@ -178,83 +212,113 @@ public class Board extends JPanel {
     }
 
     private class MinesAdapter extends MouseAdapter {
-        @Override
-        public void mousePressed(MouseEvent e) {
-            int x = e.getX();
-            int y = e.getY();
-            int cCol = x / CELL_SIZE;
-            int cRow = y / CELL_SIZE;
-            boolean doRepaint = false;
+      @Override
+      public void mousePressed(MouseEvent e) {
+          int x = e.getX();
+          int y = e.getY();
+          int cCol = x / CELL_SIZE;
+          int cRow = y / CELL_SIZE;
+          boolean doRepaint = false; // Flag to repaint at the end
 
-            if (!inGame) {
-                newGame();
-                repaint();
-                return;
-            }
+          if (!inGame) {
+              newGame();
+              repaint();
+              return;
+          }
 
-            if (x >= N_COLS * CELL_SIZE || y >= N_ROWS * CELL_SIZE) return;
+          // Bounds check
+          if (x < 0 || x >= BOARD_WIDTH || y < 0 || y >= BOARD_HEIGHT) return;
 
-            int index = cRow * N_COLS + cCol;
-            int cell = field[index];
+          int index = cRow * N_COLS + cCol;
+          // Ensure index is valid (though bounds check should prevent this)
+           if (index < 0 || index >= allCells) return;
 
-            if (e.getButton() == MouseEvent.BUTTON3) {
-                if (cell > MINE_CELL) {
-                    doRepaint = true;
-                    if (cell <= COVERED_MINE_CELL) {
-                        if (minesLeft > 0) {
-                            field[index] += MARK_FOR_CELL;
-                            minesLeft--;
-                        } else {
-                            statusbar.setText("No marks left");
-                        }
-                    } else {
-                        field[index] -= MARK_FOR_CELL;
-                        minesLeft++;
-                    }
-                    statusbar.setText("Mines: " + minesLeft + " | Coins: " + coinCount);
-                }
-            } else {
-              if (cell == COVERED_TREASURE_CELL) {
-                field[index] -= COVER_FOR_CELL;
-                coinCount++;
-                doRepaint = true;
-                statusbar.setText("Mines: " + minesLeft + " | Coins: " + coinCount);
-                repaint(); // Ensure the change is immediately visible
-                return;
-            }
-              
-                if (cell > COVERED_MINE_CELL) return;
+          int cell = field[index];
 
-                if (cell == COVERED_TREASURE_CELL) {
-                  System.out.println("Direct click on covered treasure at: " + index);
-                  revealCell(index); // Use revealCell for direct clicks as well
+          // --- Right Click (Marking) ---
+          if (e.getButton() == MouseEvent.BUTTON3) {
+              // Can only mark/unmark covered cells
+              if (cell > MINE_CELL && cell < MARKED_MINE_CELL + MARK_FOR_CELL) { // Includes covered mines, numbers, treasures
                   doRepaint = true;
+                  if (cell <= COVERED_MINE_CELL) { // If it's not already marked
+                      if (minesLeft > 0) {
+                           // Check if it's a covered treasure - don't mark treasures? Or allow?
+                           // Let's allow marking anything covered for simplicity now.
+                          if (cell == COVERED_TREASURE_CELL) {
+                              field[index] = COVERED_TREASURE_CELL + MARK_FOR_CELL; // Mark the treasure spot
+                          } else {
+                              field[index] += MARK_FOR_CELL; // Mark mine or number
+                          }
+                          minesLeft--;
+                      } else {
+                          statusbar.setText("No marks left | Coins: " + coinCount); // Update status bar
+                          doRepaint = false; // No change occurred
+                      }
+                  } else { // It is already marked, unmark it
+                      minesLeft++;
+                       // Check if it was a marked treasure
+                       if (cell == COVERED_TREASURE_CELL + MARK_FOR_CELL) {
+                           field[index] = COVERED_TREASURE_CELL; // Restore covered treasure
+                       } else {
+                          field[index] -= MARK_FOR_CELL; // Unmark back to covered mine/number
+                       }
+                  }
+                  updateStatusbar(); // Update status bar text
+              }
+          }
+          // --- Left Click (Revealing) ---
+          else if (e.getButton() == MouseEvent.BUTTON1) {
+              // Ignore clicks on already revealed cells or marked cells
+              if (cell <= MINE_CELL || cell >= MARKED_MINE_CELL) {
+                  System.out.println("Click ignored on revealed/marked cell: " + index + " value: " + cell); // Debug
                   return;
-                }
+              }
 
-                if (cell > MINE_CELL && cell < MARKED_MINE_CELL) {
-                  System.out.println("Click on covered non-mine at: " + index);
-                    revealCell(index);
-                    doRepaint = true;
+              // --- This is the main reveal logic trigger ---
+              // Handles covered mines, numbers, and treasures
+              // The old direct treasure check is removed.
+               System.out.println("Left click on covered cell: " + index + " value: " + cell); // Debug
 
-                    if (field[index] == MINE_CELL) {
-                        if (coinCount >= continueCost) {
-                            coinCount -= continueCost;
-                            continueCost++;
-                            statusbar.setText("Used coins to continue! Coins left: " + coinCount);
-                        } else {
-                            inGame = false;
-                        }
-                    } else if (field[index] == EMPTY_CELL) {
-                      System.out.println("Found empty cell click, calling findEmptyCells from mousePressed");
-                        findEmptyCells(index);
-                    }
-                }
-            }
+              // Store the value *before* revealing, in case it's a mine
+              int valueBeforeReveal = cell;
 
-            if (doRepaint) {
-                repaint();
-            }
-        }
-    }
+              // Call revealCell - this handles uncovering, coin counting, and chain reactions
+              revealCell(index);
+
+              // Now check the result *after* revealCell potentially modified field[index]
+              int valueAfterReveal = field[index];
+
+               // --- Game Over Check ---
+               // Check if the specific cell clicked *was* a mine
+               // Note: revealCell changes COVERED_MINE_CELL (19) to MINE_CELL (9)
+              if (valueBeforeReveal == COVERED_MINE_CELL && valueAfterReveal == MINE_CELL) {
+                  System.out.println("Direct mine hit at: " + index); // Debug
+                   // Implement continue logic if desired
+                   /*
+                   if (coinCount >= continueCost) {
+                       coinCount -= continueCost;
+                       continueCost++; // Increase cost for next time
+                       field[index] = COVERED_MINE_CELL; // Optionally re-cover the mine? Or mark it?
+                       // field[index] = MARKED_MINE_CELL; // Auto-mark it
+                       // minesLeft--;
+                       updateStatusbar();
+                       // Keep inGame = true
+                       System.out.println("Used coins to survive mine!");
+                   } else {
+                       inGame = false; // Not enough coins, game over
+                       System.out.println("Not enough coins to survive mine!");
+                   }
+                   */
+                   // For now, just end the game on mine click
+                   inGame = false;
+              }
+
+              doRepaint = true; // A reveal action always requires repaint
+          }
+
+          if (doRepaint) {
+              repaint();
+          }
+      }
+  }
 }
