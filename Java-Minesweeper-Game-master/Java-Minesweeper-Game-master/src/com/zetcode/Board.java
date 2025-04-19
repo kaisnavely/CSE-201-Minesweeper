@@ -334,6 +334,7 @@ public class Board extends JPanel {
                       y >= continueButtonY && y <= continueButtonY + buttonHeight && coinCount > 0) {
                       System.out.println("Continue button clicked!");
                       inGame = true;
+                      coinCount--;
                       showGameOverOverlay = false;
                       // Reset revealed mines to covered state upon continuing
                       for (int i = 0; i < field.length; i++) {
