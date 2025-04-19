@@ -7,11 +7,7 @@ import javax.swing.JLabel;
 
 public class Minesweeper extends JFrame {
 
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	private final JLabel statusbar;
+    private final JLabel statusbar;
 
     public Minesweeper() {
         statusbar = new JLabel(""); //creates a new JLabel and assigns it to status bar
