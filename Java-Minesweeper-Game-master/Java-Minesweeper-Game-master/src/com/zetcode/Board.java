@@ -71,7 +71,7 @@ public class Board extends JPanel {
 
         img = new Image[NUM_IMAGES];
         for (int i = 0; i < NUM_IMAGES; i++) {
-            img[i] = new ImageIcon("src/resources/" + i + ".png").getImage();
+            img[i] = new ImageIcon("Java-Minesweeper-Game-master/src/resources/" + i + ".png").getImage();
         }
 
         addMouseListener(new MinesAdapter());
