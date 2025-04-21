@@ -11,6 +11,9 @@ import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -109,26 +112,36 @@ public class Board extends JPanel {
 
         statusbar.setText("Mines: " + minesLeft + " | Coins: " + coinCount);
 
-        int i = 0;
-        while (i < N_MINES) {
-            int position = random.nextInt(allCells);
-            if (field[position] == COVER_FOR_CELL) {
-                field[position] = COVERED_MINE_CELL;
-                updateNeighbors(position);
-                System.out.println("Mines Placed: " + i);
-                i++;
-            }
+        // Efficient Mine Placement
+        List<Integer> possibleMinePositions = new ArrayList<>();
+        for (int i = 0; i < allCells; i++) {
+            possibleMinePositions.add(i);
+        }
+        Collections.shuffle(possibleMinePositions);
+
+        for (int i = 0; i < N_MINES; i++) {
+            int minePosition = possibleMinePositions.get(i);
+            field[minePosition] = COVERED_MINE_CELL;
+            updateNeighbors(minePosition);
+            System.out.println("Mines Placed: " + (i + 1)); // Modified print
         }
        
 
-        int chestsPlaced = 0;
-        while (chestsPlaced < INITIAL_CHESTS) {
-            int position = random.nextInt(allCells);
-            if (field[position] == COVER_FOR_CELL) {
-                field[position] = COVERED_TREASURE_CELL;
-                chestsPlaced++;
-                System.out.println("Chests Placed: " + chestsPlaced);
+        // Efficient Chest Placement (after mines)
+        List<Integer> possibleChestPositions = new ArrayList<>();
+        for (int i = 0; i < allCells; i++) {
+            if (field[i] == COVER_FOR_CELL) { // Only consider remaining covered cells
+                possibleChestPositions.add(i);
             }
+        }
+        Collections.shuffle(possibleChestPositions);
+
+        int chestsPlaced = 0;
+        for (int i = 0; i < Math.min(INITIAL_CHESTS, possibleChestPositions.size()); i++) {
+            int chestPosition = possibleChestPositions.get(i);
+            field[chestPosition] = COVERED_TREASURE_CELL;
+            chestsPlaced++;
+            System.out.println("Chests Placed: " + chestsPlaced);
         }
        
     }
