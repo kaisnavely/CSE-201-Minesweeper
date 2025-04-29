@@ -2,25 +2,25 @@ package com.zetcode;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Image;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 
 public class Board extends JPanel {
 
@@ -55,6 +55,8 @@ public class Board extends JPanel {
     private boolean isInMenu = true;
     private boolean isInMainmenu = true;
     private boolean isInGUISize = false;
+    private boolean isInTextSize = false;
+    private boolean isInTextView = false;
 
     private int[] field;
     private boolean inGame = false;
@@ -65,6 +67,7 @@ public class Board extends JPanel {
     private int continueCost = 1;
 
     private final JLabel statusbar;
+    private JTextField commandInput;
 
     public Board(JLabel statusbar) {
         this.statusbar = statusbar;
@@ -94,6 +97,198 @@ public class Board extends JPanel {
       addMouseListener(new MinesAdapter());
       //newGame();
     }
+    
+    private void initTextSizeMenu() {
+      removeAll(); // Clear any existing components
+      setLayout(new BorderLayout());
+
+      JLabel sizeLabel = new JLabel("Enter desired board size");
+      JLabel sizeLabel2 = new JLabel("Small, Medium, or Large");
+      commandInput = new JTextField(15); // Create the input field
+      
+      isInMainmenu = false;
+      isInTextSize = true;
+
+      commandInput.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+              if (isInTextSize) {
+                  String inputText = commandInput.getText().trim().toLowerCase();
+                  switch (inputText){
+                    case "small":
+                      setValues(8, 8, 10, 4);
+                      removeAll();
+                      initTextMode();
+                      commandInput.setText("");
+                      break;
+                    case "medium":
+                      setValues(16, 16, 40, 10);
+                      removeAll();
+                      initTextMode();
+                      commandInput.setText("");
+                      break;
+                    case "large":
+                      setValues(16, 30, 99, 25);
+                      removeAll();
+                      initTextMode();
+                      commandInput.setText("");
+                      break;
+                    default:
+                      commandInput.setText("Either Small, Medium, or Large");
+                  }
+              }
+          }
+      });
+
+      add(sizeLabel, BorderLayout.NORTH);
+      add(sizeLabel2, BorderLayout.CENTER);
+      add(commandInput, BorderLayout.SOUTH);
+      
+
+      revalidate();
+      repaint();
+  }
+    
+    private void initTextMode() {
+      setPreferredSize(new Dimension(BOARD_WIDTH + 100, BOARD_HEIGHT + 150));
+      Container parent = getParent();
+      while (parent != null && !(parent instanceof JFrame)) {
+          parent = parent.getParent();
+      }
+      if (parent instanceof JFrame) {
+          JFrame frame = (JFrame) parent;
+          frame.pack();
+      }
+      setLayout(new BorderLayout());
+
+      JLabel textModeLabel = new JLabel("Enter command (e.g., reveal 0 0, mark 1 2):");
+      commandInput = new JTextField();
+      commandInput.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+           // if(isInTextView) {
+              String command = commandInput.getText();
+              updateStatusbar();
+              processCommand(command);
+              commandInput.setText("");
+            //}
+          }
+      });
+
+      removeMouseListener(getMouseListeners()[0]);
+      add(textModeLabel, BorderLayout.NORTH);
+      add(commandInput, BorderLayout.SOUTH);
+
+      
+      newGame();
+      inGame = true;
+      isInTextView = true;
+      isInMenu = false;
+      repaint();
+      
+  }
+    
+    private void processCommand(String command) {
+      String[] parts = command.trim().split("\\s+");
+      if(parts.length == 1) {
+        String action = parts[0].toLowerCase();
+        switch(action) {
+          case "restart":
+           newGame();
+           inGame = true;
+           repaint();
+           break;
+          case "continue":
+            System.out.println("Continue Called");
+            if(coinCount >= continueCost)
+            {
+             inGame = true;
+             coinCount--;   
+             updateStatusbar();
+             repaint();
+             }else {
+               statusbar.setText("You don't have enough coins. Please type 'restart' to Start Over");
+               System.out.println("cannot continue");
+             }
+            }
+       
+      }else if (parts.length >= 3) {
+          String action = parts[0].toLowerCase();
+          try {
+              int row = Integer.parseInt(parts[1]);
+              int col = Integer.parseInt(parts[2]);
+              int index = row * N_COLS + col;
+              int cell = -1;
+
+              if (index >= 0 && index < allCells) {
+                  cell = field[index];
+                  switch (action) {
+                      case "reveal":
+                        if (inGame && cell > MINE_CELL && cell < MARKED_MINE_CELL) {
+                          revealCell(index);
+                          if (!inGame) {
+                              statusbar.setText("GAME OVER! You Have " + coinCount + " Coins");
+                          }
+                      } else if (!inGame) {
+                          statusbar.setText("Game Over. Restart to play.");
+                      } else if (cell <= MINE_CELL || cell >= MARKED_MINE_CELL) {
+                          statusbar.setText("Cannot reveal this cell.");
+                      }
+                      break;
+                      case "mark":
+                        if (inGame && cell > MINE_CELL && cell < MARKED_MINE_CELL + MARK_FOR_CELL) {
+                          if (cell <= COVERED_MINE_CELL) {
+                              if (minesLeft > 0) {
+                                  if (cell == COVERED_TREASURE_CELL) {
+                                      field[index] = COVERED_TREASURE_CELL + MARK_FOR_CELL;
+                                  } else {
+                                      field[index] += MARK_FOR_CELL;
+                                  }
+                                  minesLeft--;
+                                  updateStatusbar();
+                                  repaint();
+                              } else {
+                                  statusbar.setText("No marks left | Coins: " + coinCount);
+                              }
+                          } else {
+                              statusbar.setText("Cell already marked.");
+                          }
+                      } else if (!inGame) {
+                          statusbar.setText("Game Over. Restart to play.");
+                      } else {
+                          statusbar.setText("Cannot mark this cell.");
+                      }
+                          break;
+                      case "unmark":
+                        if (inGame && cell > COVERED_MINE_CELL) {
+                          minesLeft++;
+                          if (cell == COVERED_TREASURE_CELL + MARK_FOR_CELL) {
+                              field[index] = COVERED_TREASURE_CELL;
+                          } else {
+                              field[index] -= MARK_FOR_CELL;
+                          }
+                          updateStatusbar();
+                      } else if (!inGame) {
+                          statusbar.setText("Game Over. Restart to play.");
+                      } else {
+                          statusbar.setText("Cannot unmark this cell.");
+                      }
+                          break;
+                      default:
+                          statusbar.setText("Invalid command.");
+                          break;
+                  }
+                  repaint(); // Update the text representation
+              } else {
+                  statusbar.setText("Invalid row or column.");
+              }
+          } catch (NumberFormatException e) {
+              statusbar.setText("Invalid row or column format.");
+          }
+      } else if(parts.length > 0){
+          statusbar.setText("Please enter command in the format: action row col");
+      }
+  }
 
     private void newGame() {
         Random random = new Random();
@@ -187,13 +382,14 @@ public class Board extends JPanel {
 
           // If the revealed cell is now empty, trigger chain reaction
           else if (field[pos] == EMPTY_CELL) {
-               System.out.println("Found empty cell via revealCell, calling findEmptyCells for: " + pos); // Debug
-               findEmptyCells(pos); // Start revealing neighbors
+              System.out.println("Found empty cell via revealCell, calling findEmptyCells for: " + pos); // Debug
+              findEmptyCells(pos); // Start revealing neighbors
           }
           // If it's a numbered cell (1-8) or a mine (9), revealing stops here.
-           else if (field[pos] == MINE_CELL) {
-               System.out.println("Mine revealed via revealCell at: " + pos); // Debug
-           }
+          else if (field[pos] == MINE_CELL) {
+              System.out.println("Mine revealed via revealCell at: " + pos); // Debug
+              inGame = false; // Set inGame to false when a mine is revealed
+          }
       }
   }
     
@@ -209,8 +405,71 @@ public class Board extends JPanel {
 
     @Override
     protected void paintComponent(Graphics g) {
-      if(!isInMenu) {
-        System.out.println("Painting Board: N_ROWS=" + N_ROWS + ", N_COLS=" + N_COLS);
+      GraphicsHandler graphicHandler = new GraphicsHandler(g);
+      if(isInTextView) {
+        // Text-based representation (no need for img array)
+        g.setColor(Color.WHITE);
+        g.fillRect(0, 0, getWidth(), getHeight());
+        g.setColor(Color.BLACK);
+        g.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        int y = 25;
+        
+        int rowNumberWidth = String.valueOf(N_ROWS - 1).length() + 1; // +1 for a trailing space
+        String rowNumberFormat = "%-" + rowNumberWidth + "d";
+        String initialSpacing = " ".repeat(rowNumberWidth);
+        
+     // Determine the number of spaces needed for column numbers
+        int colNumberWidth = String.valueOf(N_COLS - 1).length();
+        String colFormat = "%-2d";
+        //String cellFormat = "%-3s";// Adjust spacing for double digits
+        
+     // Draw column numbers
+        StringBuilder colNumbers = new StringBuilder(initialSpacing); // Initial spacing for row numbers
+        for (int j = 0; j < N_COLS; j++) {
+          if(j < 10) {
+            colNumbers.append(String.format("%-2d", j));
+          }else {
+            colNumbers.append(String.format("%-3d", j));
+          }
+             // Format numbers with consistent spacing
+        }
+        g.drawString(colNumbers.toString(), 17, 30);
+        y += 20; // Move down after column numbers
+        
+        g.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        
+        for (int i = 0; i < N_ROWS; i++) {
+          StringBuilder rowStr = new StringBuilder(String.format(rowNumberFormat, i));
+         
+            for (int j = 0; j < N_COLS; j++) {
+              int index = i * N_COLS + j;
+              int cellValue = field[index];
+
+              if (cellValue >= MARKED_MINE_CELL) {
+                  rowStr.append("M "); // Marked Mine
+              } else if (cellValue == COVERED_MINE_CELL) {
+                  rowStr.append(". "); // Covered Mine (Unmarked)
+              } else if (cellValue >= COVERED_TREASURE_CELL + MARK_FOR_CELL) {
+                  rowStr.append("M "); // Marked Treasure
+              } else if (cellValue == COVERED_TREASURE_CELL) {
+                  rowStr.append(". "); // Covered Treasure (Unmarked)
+              } else if (cellValue >= COVER_FOR_CELL && cellValue < COVERED_TREASURE_CELL) {
+                  rowStr.append(". "); // Other Covered (Empty or Numbered, Unmarked)
+              } else if (cellValue == MINE_CELL) {
+                  rowStr.append("* "); // Revealed Mine
+              } else if (cellValue == TREASURE_CELL) {
+                  rowStr.append("$ "); // Revealed Treasure
+              } else if (cellValue == EMPTY_CELL) {
+                  rowStr.append("  "); // Revealed Empty
+              } else if (cellValue > EMPTY_CELL && cellValue < MINE_CELL) {
+                  rowStr.append(cellValue).append(" "); // Revealed Number
+              }
+              
+          }
+            g.drawString(rowStr.toString(), 20, y);
+            y += 20;
+        }
+      }else if(!isInMenu) {
         int uncover = 0;
         for (int i = 0; i < N_ROWS; i++) {
             for (int j = 0; j < N_COLS; j++) {
@@ -256,58 +515,22 @@ public class Board extends JPanel {
 
         // --- DRAW GAME OVER OVERLAY ONLY IF showGameOverOverlay IS TRUE ---
         if (showGameOverOverlay) {
-            g.setColor(new Color(0, 0, 0, 180)); // Semi-transparent black background
-            g.fillRect((getWidth() - 150) / 2, (getHeight() - 150) / 2, 150, 150);
+            graphicHandler.setUpGameOverScreen(getWidth(), getHeight());
 
-            String gameOverText = "Game Over";
-            g.setColor(Color.RED);
-            g.setFont(new Font("Arial", Font.BOLD, 24));
-            FontMetrics fm = g.getFontMetrics(new Font("Arial", Font.BOLD, 24));
-            g.drawString(gameOverText,
-                    (getWidth() - 150) / 2 + (150 - fm.stringWidth(gameOverText)) / 2,
-                    (getHeight() - 250) / 2 + (150 - fm.getAscent()) / 2 + fm.getAscent());
+            graphicHandler.createText(getWidth(), getHeight(), 150, 250, 24, 1, 150, 150, "Game Over", Color.red);
+            
+            graphicHandler.createText(getWidth(), getHeight(), 150, 200, 12, 0, 150, 150, "You Have " + coinCount + " Coins", Color.white);
 
-            String coinAmountText = "You Have " + coinCount + " Coins";
-            g.setColor(Color.WHITE);
-            g.setFont(new Font("Arial", Font.PLAIN, 12));
-            FontMetrics fmCA = g.getFontMetrics(new Font("Arial", Font.PLAIN, 12));
-            g.drawString(coinAmountText,
-                    (getWidth() - 150) / 2 + (150 - fmCA.stringWidth(coinAmountText)) / 2,
-                    (getHeight() - 200) / 2 + (150 - fmCA.getAscent()) / 2 + fmCA.getAscent());
 
             if (coinCount > 0) {
-                String coinQuestionText = "Use " + continueCost + " Coin to Continue?";
-                g.setColor(Color.WHITE);
-                g.setFont(new Font("Arial", Font.PLAIN, 12));
-                FontMetrics fmCQ = g.getFontMetrics(new Font("Arial", Font.PLAIN, 12));
-                g.drawString(coinQuestionText,
-                        (getWidth() - 150) / 2 + (150 - fmCQ.stringWidth(coinQuestionText)) / 2,
-                        (getHeight() - 165) / 2 + (150 - fmCQ.getAscent()) / 2 + fmCQ.getAscent());
-                
-                // Continue Button
-                g.setColor(Color.gray);
-                g.fillRect((getWidth() - 100) / 2, (getHeight() + 25) / 2, 100, 25);
-                String continueButtonText = "Continue";
-                g.setColor(Color.WHITE);
-                g.setFont(new Font("Arial", Font.PLAIN, 12));
-                FontMetrics fmCQContinue = g.getFontMetrics(new Font("Arial", Font.PLAIN, 12));
-                g.drawString(continueButtonText,
-                        (getWidth() - 100) / 2 + (100 - fmCQContinue.stringWidth(continueButtonText)) / 2,
-                        (getHeight() - 125) / 2 + (175 - fmCQContinue.getAscent()) / 2 + fmCQContinue.getAscent());
+                graphicHandler.createText(getWidth(), getHeight(), 150, 165, 12, 0, 150, 150, "Use " + continueCost + " Coin to Continue?", Color.white);
+    
+                //continue button
+                graphicHandler.createButton(getWidth(), getHeight(), 100, 25, 100, 125, 100, 175, 100, 25, "Continue", Color.gray);
             }
 
-           
-
-            // Restart Button
-            g.setColor(Color.gray);
-            g.fillRect((getWidth() - 100) / 2, (getHeight() + 80) / 2, 100, 25);
-            String restartButtonText = "Restart";
-            g.setColor(Color.WHITE);
-            g.setFont(new Font("Arial", Font.PLAIN, 12));
-            FontMetrics fmRestart = g.getFontMetrics(new Font("Arial", Font.PLAIN, 12));
-            g.drawString(restartButtonText,
-                    (getWidth() - 100) / 2 + (100 - fmRestart.stringWidth(restartButtonText)) / 2,
-                    (getHeight() - 125) / 2 + (230 - fmRestart.getAscent()) / 2 + fmRestart.getAscent());
+            //restartButton
+            graphicHandler.createButton(getWidth(), getHeight(), 100, 25, 100, 125, 100, 230, 100, 80, "Restart", Color.gray);
         }
       }else {
         if(isInMainmenu) {
@@ -403,6 +626,24 @@ public class Board extends JPanel {
        
         
         //super.paintComponent(g); //clears
+      }
+    }
+    
+    private void setValues(int row, int col, int mines, int chests) {
+      N_ROWS = row;
+      N_COLS = col;
+      N_MINES = mines;
+      INITIAL_CHESTS = chests;
+      BOARD_WIDTH = N_COLS * CELL_SIZE + 1;
+      BOARD_HEIGHT = N_ROWS * CELL_SIZE + 1;
+      setPreferredSize(new Dimension(BOARD_WIDTH, BOARD_HEIGHT));
+      Container parent = getParent();
+      while (parent != null && !(parent instanceof JFrame)) {
+          parent = parent.getParent();
+      }
+      if (parent instanceof JFrame) {
+          JFrame frame = (JFrame) parent;
+          frame.pack();
       }
     }
     
@@ -514,6 +755,7 @@ public class Board extends JPanel {
                 if (x >= textButtonX && x <= textButtonX + textButtonWidth &&
                     y >= textButtonY && y <= textButtonY + textButtonHeight) {
                     System.out.println("Text Mode button clicked!");
+                    initTextSizeMenu();
                     return;
                 }
                 
@@ -550,21 +792,7 @@ public class Board extends JPanel {
 
                 if (x >= smallButtonX && x <= smallButtonX + smallButtonWidth &&
                     y >= smallButtonY && y <= smallButtonY + smallButtonHeight) {
-                    N_ROWS = 8;
-                    N_COLS = 8;
-                    N_MINES = 10;
-                    INITIAL_CHESTS = 4;
-                    BOARD_WIDTH = N_COLS * CELL_SIZE + 1;
-                    BOARD_HEIGHT = N_ROWS * CELL_SIZE + 1;
-                    setPreferredSize(new Dimension(BOARD_WIDTH, BOARD_HEIGHT));
-                    Container parent = getParent();
-                    while (parent != null && !(parent instanceof JFrame)) {
-                        parent = parent.getParent();
-                    }
-                    if (parent instanceof JFrame) {
-                        JFrame frame = (JFrame) parent;
-                        frame.pack();
-                    }
+                    setValues(8, 8, 10, 4);
                     isInMenu = false;
                     isInGUISize = false;
                     initBoard();
@@ -580,21 +808,7 @@ public class Board extends JPanel {
 
                 if (x >= mediumButtonX && x <= mediumButtonX + mediumButtonWidth &&
                     y >= mediumButtonY && y <= mediumButtonY + mediumButtonHeight) {
-                  N_ROWS = 16;
-                  N_COLS = 16;
-                  N_MINES = 40;
-                  INITIAL_CHESTS = 10;
-                  BOARD_WIDTH = N_COLS * CELL_SIZE + 1;
-                  BOARD_HEIGHT = N_ROWS * CELL_SIZE + 1;
-                  setPreferredSize(new Dimension(BOARD_WIDTH, BOARD_HEIGHT));
-                  Container parent = getParent();
-                  while (parent != null && !(parent instanceof JFrame)) {
-                      parent = parent.getParent();
-                  }
-                  if (parent instanceof JFrame) {
-                      JFrame frame = (JFrame) parent;
-                      frame.pack();
-                  }
+                  setValues(16, 16, 40, 10);
                   isInMenu = false;
                   isInGUISize = false;
                   initBoard();
@@ -611,21 +825,7 @@ public class Board extends JPanel {
                 if (x >= largeButtonX && x <= largeButtonX + largeButtonWidth &&
                     y >= largeButtonY && y <= largeButtonY + largeButtonHeight) {
                     //System.out.println("large");
-                    N_ROWS = 16;
-                    N_COLS = 30;
-                    N_MINES = 99;
-                    INITIAL_CHESTS = 25;
-                    BOARD_WIDTH = N_COLS * CELL_SIZE + 1;
-                    BOARD_HEIGHT = N_ROWS * CELL_SIZE + 1;
-                    setPreferredSize(new Dimension(BOARD_WIDTH, BOARD_HEIGHT));
-                    Container parent = getParent();
-                    while (parent != null && !(parent instanceof JFrame)) {
-                        parent = parent.getParent();
-                    }
-                    if (parent instanceof JFrame) {
-                        JFrame frame = (JFrame) parent;
-                        frame.pack();
-                    }
+                    setValues(16, 30, 99, 25);
                     isInMenu = false;
                     isInGUISize = false;
                     initBoard();
