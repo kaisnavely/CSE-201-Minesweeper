@@ -5,7 +5,6 @@ import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
@@ -15,7 +14,6 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -81,21 +79,12 @@ public class Board extends JPanel {
         for (int i = 0; i < NUM_IMAGES; i++) {
             img[i] = new ImageIcon("src/resources/" + i + ".png").getImage();
         }
-
-        //addMouseListener(new MinesAdapter());
         newGame();
     }
     
     private void initMenu() {
       setPreferredSize(new Dimension(BOARD_WIDTH, BOARD_HEIGHT));
-
-      //img = new Image[NUM_IMAGES];
-      //for (int i = 0; i < NUM_IMAGES; i++) {
-          //img[i] = new ImageIcon("src/resources/" + i + ".png").getImage();
-      //}
-
       addMouseListener(new MinesAdapter());
-      //newGame();
     }
     
     private void initTextSizeMenu() {
@@ -224,39 +213,34 @@ public class Board extends JPanel {
                   cell = field[index];
                   switch (action) {
                       case "reveal":
-                        if (inGame && cell > MINE_CELL && cell < MARKED_MINE_CELL) {
+                        if (!inGame) {
+                          statusbar.setText("Game Over. Restart to play.");
+                      } else if (cell > MINE_CELL && cell < MARKED_MINE_CELL) {
                           revealCell(index);
                           if (!inGame) {
                               statusbar.setText("GAME OVER! You Have " + coinCount + " Coins");
                           }
-                      } else if (!inGame) {
-                          statusbar.setText("Game Over. Restart to play.");
-                      } else if (cell <= MINE_CELL || cell >= MARKED_MINE_CELL) {
+                      } else {
                           statusbar.setText("Cannot reveal this cell.");
                       }
                       break;
                       case "mark":
-                        if (inGame && cell > MINE_CELL && cell < MARKED_MINE_CELL + MARK_FOR_CELL) {
-                          if (cell <= COVERED_MINE_CELL) {
-                              if (minesLeft > 0) {
-                                  if (cell == COVERED_TREASURE_CELL) {
-                                      field[index] = COVERED_TREASURE_CELL + MARK_FOR_CELL;
-                                  } else {
-                                      field[index] += MARK_FOR_CELL;
-                                  }
-                                  minesLeft--;
-                                  updateStatusbar();
-                                  repaint();
-                              } else {
-                                  statusbar.setText("No marks left | Coins: " + coinCount);
-                              }
-                          } else {
-                              statusbar.setText("Cell already marked.");
-                          }
-                      } else if (!inGame) {
+                        if (!inGame) {
                           statusbar.setText("Game Over. Restart to play.");
-                      } else {
+                      } else if (cell <= MINE_CELL || cell >= MARKED_MINE_CELL + MARK_FOR_CELL) {
                           statusbar.setText("Cannot mark this cell.");
+                      } else if (cell > COVERED_MINE_CELL) {
+                          statusbar.setText("Cell already marked.");
+                      } else if (minesLeft <= 0) {
+                          statusbar.setText("No marks left | Coins: " + coinCount);
+                      } else {
+                          field[index] += (cell == COVERED_TREASURE_CELL) ? MARK_FOR_CELL : MARK_FOR_CELL;
+                          if (cell == COVERED_TREASURE_CELL) {
+                              field[index] = COVERED_TREASURE_CELL + MARK_FOR_CELL;
+                          }
+                          minesLeft--;
+                          updateStatusbar();
+                          repaint();
                       }
                           break;
                       case "unmark":
@@ -291,11 +275,9 @@ public class Board extends JPanel {
   }
 
     private void newGame() {
-        Random random = new Random();
         inGame = true;
         minesLeft = N_MINES;
         allCells = N_ROWS * N_COLS;
-        System.out.println("Large Board: N_ROWS=" + N_ROWS + ", N_COLS=" + N_COLS + ", allCells=" + allCells + ", N_MINES=" + N_MINES + ", INITIAL_CHESTS=" + INITIAL_CHESTS);
         field = new int[allCells];
         coinCount = 0;
         continueCost = 1;
@@ -303,7 +285,6 @@ public class Board extends JPanel {
         for (int i = 0; i < allCells; i++) {
             field[i] = COVER_FOR_CELL;
         }
-        System.out.println("Large Board: First field element after init: " + field[0]);
 
         statusbar.setText("Mines: " + minesLeft + " | Coins: " + coinCount);
 
@@ -318,7 +299,6 @@ public class Board extends JPanel {
             int minePosition = possibleMinePositions.get(i);
             field[minePosition] = COVERED_MINE_CELL;
             updateNeighbors(minePosition);
-            System.out.println("Mines Placed: " + (i + 1)); // Modified print
         }
        
 
@@ -407,7 +387,6 @@ public class Board extends JPanel {
     protected void paintComponent(Graphics g) {
       GraphicsHandler graphicHandler = new GraphicsHandler(g);
       if(isInTextView) {
-        // Text-based representation (no need for img array)
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, getWidth(), getHeight());
         g.setColor(Color.BLACK);
@@ -418,12 +397,6 @@ public class Board extends JPanel {
         String rowNumberFormat = "%-" + rowNumberWidth + "d";
         String initialSpacing = " ".repeat(rowNumberWidth);
         
-     // Determine the number of spaces needed for column numbers
-        int colNumberWidth = String.valueOf(N_COLS - 1).length();
-        String colFormat = "%-2d";
-        //String cellFormat = "%-3s";// Adjust spacing for double digits
-        
-     // Draw column numbers
         StringBuilder colNumbers = new StringBuilder(initialSpacing); // Initial spacing for row numbers
         for (int j = 0; j < N_COLS; j++) {
           if(j < 10) {
@@ -521,7 +494,6 @@ public class Board extends JPanel {
             
             graphicHandler.createText(getWidth(), getHeight(), 150, 200, 12, 0, 150, 150, "You Have " + coinCount + " Coins", Color.white);
 
-
             if (coinCount > 0) {
                 graphicHandler.createText(getWidth(), getHeight(), 150, 165, 12, 0, 150, 150, "Use " + continueCost + " Coin to Continue?", Color.white);
     
@@ -535,97 +507,31 @@ public class Board extends JPanel {
       }else {
         if(isInMainmenu) {
           
-          String titleText = "MINESWEEPER+";
-          g.setColor(Color.RED);
-          g.setFont(new Font("Arial", Font.BOLD, 24));
-          FontMetrics fm = g.getFontMetrics(new Font("Arial", Font.BOLD, 24));
-          g.drawString(titleText,
-                  (getWidth() - 150) / 2 + (150 - fm.stringWidth(titleText)) / 2,
-                  (getHeight() - 250) / 2 + (150 - fm.getAscent()) / 2 + fm.getAscent());
+          graphicHandler.createText(getWidth(), getHeight(), 150, 250, 24, 1, 150, 150, "MINESWEEPER+" , Color.red);
           
           //GUI Button
-          g.setColor(Color.gray);
-          g.fillRect((getWidth() - 150) / 2, (getHeight() + 80) / 2, 150, 25);
-          String guiButtonText = "Graphic Mode";
-          g.setColor(Color.WHITE);
-          g.setFont(new Font("Arial", Font.PLAIN, 12));
-          FontMetrics fmRestart = g.getFontMetrics(new Font("Arial", Font.PLAIN, 12));
-          g.drawString(guiButtonText,
-                  (getWidth() - 100) / 2 + (100 - fmRestart.stringWidth(guiButtonText)) / 2,
-                  (getHeight() - 125) / 2 + (230 - fmRestart.getAscent()) / 2 + fmRestart.getAscent());
+          graphicHandler.createButton(getWidth(), getHeight(), 150, 25, 100, 125, 100, 230, 150, 80, "Graphic Mode", Color.gray);
           
           //Text Mode Button
-          g.setColor(Color.gray);
-          g.fillRect((getWidth() - 150) / 2, (getHeight() + 25) / 2, 150, 25);
-          String textButtonText = "Text Mode";
-          g.setColor(Color.WHITE);
-          g.setFont(new Font("Arial", Font.PLAIN, 12));
-          FontMetrics fmText = g.getFontMetrics(new Font("Arial", Font.PLAIN, 12));
-          g.drawString(textButtonText,
-                  (getWidth() - 100) / 2 + (100 - fmText.stringWidth(textButtonText)) / 2,
-                  (getHeight() - 180) / 2 + (230 - fmText.getAscent()) / 2 + fmText.getAscent());
+          graphicHandler.createButton(getWidth(), getHeight(), 150, 25, 100, 180, 100, 230, 150, 25, "Text Mode", Color.gray);
           
           //Load Button
-          g.setColor(Color.gray);
-          g.fillRect((getWidth() - 150) / 2, (getHeight() + 135) / 2, 72, 25);
-          String loadButtonText = "Load Game";
-          g.setColor(Color.WHITE);
-          g.setFont(new Font("Arial", Font.PLAIN, 12));
-          FontMetrics fmLoad = g.getFontMetrics(new Font("Arial", Font.PLAIN, 12));
-          g.drawString(loadButtonText,
-                  (getWidth() - 175) / 2 + (100 - fmLoad.stringWidth(loadButtonText)) / 2,
-                  (getHeight() - 70) / 2 + (230 - fmLoad.getAscent()) / 2 + fmLoad.getAscent());
+          graphicHandler.createButton(getWidth(), getHeight(), 72, 25, 175, 70, 100, 230, 150, 135, "Load", Color.gray);
           
           //Test Mode Button
-          g.setColor(Color.gray);
-          g.fillRect((getWidth() + 6) / 2, (getHeight() + 135) / 2, 72, 25);
-          String testModeButtonText = "Test Mode";
-          g.setColor(Color.WHITE);
-          g.setFont(new Font("Arial", Font.PLAIN, 12));
-          FontMetrics fmTestMode = g.getFontMetrics(new Font("Arial", Font.PLAIN, 12));
-          g.drawString(testModeButtonText,
-                  (getWidth() - 23) / 2 + (100 - fmTestMode.stringWidth(testModeButtonText)) / 2,
-                  (getHeight() - 70) / 2 + (230 - fmTestMode.getAscent()) / 2 + fmTestMode.getAscent());
+          graphicHandler.createButton(getWidth(), getHeight(), 72, 25, 23, 70, 100, 230, -6, 135, "Test Mode", Color.gray);
         }else if(isInGUISize) {
-          //System.out.println("Test");
           super.paintComponent(g); //clears
           
           //small field button
-          g.setColor(Color.gray);
-          g.fillRect((getWidth() - 150) / 2, (getHeight() - 80) / 2, 150, 25);
-          String smallSizeButtonText = "Small";
-          g.setColor(Color.WHITE);
-          g.setFont(new Font("Arial", Font.PLAIN, 12));
-          FontMetrics fmSmall = g.getFontMetrics(new Font("Arial", Font.PLAIN, 12));
-          g.drawString(smallSizeButtonText,
-                  (getWidth() - 100) / 2 + (100 - fmSmall.stringWidth(smallSizeButtonText)) / 2,
-                  (getHeight() - 285) / 2 + (230 - fmSmall.getAscent()) / 2 + fmSmall.getAscent());
+          graphicHandler.createButton(getWidth(), getHeight(), 150, 25, 100, 285, 100, 180, 150, -125, "Small", Color.gray);
           
           //medium field button
-          g.setColor(Color.gray);
-          g.fillRect((getWidth() - 150) / 2, (getHeight() - 25) / 2, 150, 25);
-          String mediumSizeButtonText = "Medium";
-          g.setColor(Color.WHITE);
-          g.setFont(new Font("Arial", Font.PLAIN, 12));
-          FontMetrics fmRestart = g.getFontMetrics(new Font("Arial", Font.PLAIN, 12));
-          g.drawString(mediumSizeButtonText,
-                  (getWidth() - 100) / 2 + (100 - fmRestart.stringWidth(mediumSizeButtonText)) / 2,
-                  (getHeight() - 230) / 2 + (230 - fmRestart.getAscent()) / 2 + fmRestart.getAscent());
+          graphicHandler.createButton(getWidth(), getHeight(), 150, 25, 100, 230, 100, 230, 150, -25, "Medium", Color.gray);
           
-          //medium field button
-          g.setColor(Color.gray);
-          g.fillRect((getWidth() - 150) / 2, (getHeight() + 30) / 2, 150, 25);
-          String largeSizeButtonText = "Large";
-          g.setColor(Color.WHITE);
-          g.setFont(new Font("Arial", Font.PLAIN, 12));
-          FontMetrics fmLarge = g.getFontMetrics(new Font("Arial", Font.PLAIN, 12));
-          g.drawString(largeSizeButtonText,
-                  (getWidth() - 100) / 2 + (100 - fmLarge.stringWidth(largeSizeButtonText)) / 2,
-                  (getHeight() - 175) / 2 + (230 - fmLarge.getAscent()) / 2 + fmLarge.getAscent());
+          //large field button
+          graphicHandler.createButton(getWidth(), getHeight(), 150, 25, 100, 175, 100, 230 + (110 - 30), 150, 110, "Large", Color.gray);
         }
-       
-        
-        //super.paintComponent(g); //clears
       }
     }
     
@@ -646,6 +552,26 @@ public class Board extends JPanel {
           frame.pack();
       }
     }
+    
+    private void handleClick(int buttonWidth, int buttonHeight, int posX, int posY, int x, int y, boolean condition, Runnable func) {
+
+      // Calculate the button's top-left corner based on your current logic
+      int buttonX = (getWidth() - posX) / 2;
+      int buttonY = (getHeight() + posY) / 2;
+
+      // Calculate the button's bottom-right corner
+      int buttonBottomX = buttonX + buttonWidth;
+      int buttonBottomY = buttonY + buttonHeight;
+
+      // Print the calculated rectangle
+      System.out.println("Rect: (" + buttonX + ", " + buttonY + ") - (" + buttonBottomX + ", " + buttonBottomY + ")");
+
+      // Your original click detection logic
+      if (x >= buttonX && x <= buttonBottomX &&
+          y >= buttonY && y <= buttonBottomY && condition) {
+          func.run();
+      }
+  }
     
 
     private class MinesAdapter extends MouseAdapter {
@@ -693,147 +619,77 @@ public class Board extends JPanel {
           // --- Left Click ---
           else if (e.getButton() == MouseEvent.BUTTON1) {
               if (!inGame && showGameOverOverlay) {
-                  // --- Game Over Overlay Click Handling ---
-                  int continueButtonX = (getWidth() - 100) / 2;
-                  int continueButtonY = (getHeight() + 25) / 2;
-                  int buttonWidth = 100;
-                  int buttonHeight = 25;
-
-                  if (x >= continueButtonX && x <= continueButtonX + buttonWidth &&
-                      y >= continueButtonY && y <= continueButtonY + buttonHeight && coinCount > 0) {
-                      System.out.println("Continue button clicked!");
-                      inGame = true;
-                      coinCount--;
-                      showGameOverOverlay = false;
-                      // Reset revealed mines to covered state upon continuing
-                      for (int i = 0; i < field.length; i++) {
-                          if (field[i] == MINE_CELL) {
-                              field[i] = COVERED_MINE_CELL;
-                          }
-                      }
-                      repaint();
-                      updateStatusbar();
-                      return;
-                  }
-
-                  int restartButtonX = (getWidth() - 100) / 2;
-                  int restartButtonY = (getHeight() + 80) / 2;
-
-                  if (x >= restartButtonX && x <= restartButtonX + buttonWidth &&
-                      y >= restartButtonY && y <= restartButtonY + buttonHeight) {
-                      System.out.println("Restart button clicked!");
-                      newGame();
-                      showGameOverOverlay = false;
-                      repaint();
-                      return;
-                  }
-                 
                   
-              }else if(!inGame && isInMainmenu) {
-                //System.out.println("main menu click");
-              //Graphic mode
-                int graphicButtonX = (getWidth() - 150) / 2;
-                int graphicButtonY = (getHeight() + 80) / 2;
-                int graphicButtonWidth = 150;
-                int graphicButtonHeight = 25;
-
-                if (x >= graphicButtonX && x <= graphicButtonX + graphicButtonWidth &&
-                    y >= graphicButtonY && y <= graphicButtonY + graphicButtonHeight) {
-                    System.out.println("Graphic Button button clicked!");
-                    isInMainmenu = false;
-                    isInGUISize = true;
+                  // --- Game Over Overlay Click Handling ---
+                  handleClick(100, 25, 100, 25, x, y, coinCount > 0, () -> {
+                    System.out.println("Continue button clicked!");
+                    inGame = true;
+                    coinCount--;
+                    showGameOverOverlay = false;
+                    // Reset revealed mines to covered state upon continuing
+                    for (int i = 0; i < field.length; i++) {
+                        if (field[i] == MINE_CELL) {
+                            field[i] = COVERED_MINE_CELL;
+                        }
+                    }
                     repaint();
-                    return;
-                }
+                    updateStatusbar();
+                  });
 
+                  handleClick(100, 25, 100, 80, x, y, true, () -> {
+                    System.out.println("Restart button clicked!");
+                    newGame();
+                    showGameOverOverlay = false;
+                    repaint();
+                  });
+              }else if(!inGame && isInMainmenu) {
+              //Graphic mode
+                handleClick(150, 25, 150, 80, x, y, true, () -> {
+                  isInMainmenu = false;
+                  isInGUISize = true;
+                  repaint();
+                });
                 //TextMode
-                int textButtonX = (getWidth() - 150) / 2;
-                int textButtonY = (getHeight() + 25) / 2;
-                int textButtonWidth = 150;
-                int textButtonHeight = 25;
-
-                if (x >= textButtonX && x <= textButtonX + textButtonWidth &&
-                    y >= textButtonY && y <= textButtonY + textButtonHeight) {
-                    System.out.println("Text Mode button clicked!");
-                    initTextSizeMenu();
-                    return;
-                }
-                
+                handleClick(150, 25, 150, 25, x, y, true, () -> {
+                  initTextSizeMenu();
+                });
                 //Load Game
-                int loadGameButtonX = (getWidth() - 150) / 2;
-                int loadGameButtonY = (getHeight() + 135) / 2;
-                int loadGameButtonWidth = 72;
-                int loadGameButtonHeight = 25;
-
-                if (x >= loadGameButtonX && x <= loadGameButtonX + loadGameButtonWidth &&
-                    y >= loadGameButtonY && y <= loadGameButtonY + loadGameButtonHeight) {
-                    System.out.println("Load Game button clicked!");
-                    return;
-                }
-                
+                handleClick(72, 25, 150, 135, x, y, true, () -> {
+                  System.out.println("Load Game button clicked!");
+                });
                 //TestMode
-                int testModeButtonX = (getWidth() + 6) / 2;
-                int testModeButtonY = (getHeight() + 135) / 2;
-                int testModeButtonWidth = 72;
-                int testModeButtonHeight = 25;
-
-                if (x >= testModeButtonX && x <= testModeButtonX + testModeButtonWidth &&
-                    y >= testModeButtonY && y <= testModeButtonY + testModeButtonHeight) {
-                    System.out.println("Test Mode button clicked!");
-                    return;
-                }
-                
+                handleClick(72, 25, 6, 135, x, y, true, () -> {
+                  System.out.println("Test Mode button clicked!");
+                });
               }else if(!inGame && isInGUISize) {
                 //small mode
-                int smallButtonX = (getWidth() - 150) / 2;
-                int smallButtonY = (getHeight() - 80) / 2;
-                int smallButtonWidth = 150;
-                int smallButtonHeight = 25;
-
-                if (x >= smallButtonX && x <= smallButtonX + smallButtonWidth &&
-                    y >= smallButtonY && y <= smallButtonY + smallButtonHeight) {
-                    setValues(8, 8, 10, 4);
-                    isInMenu = false;
-                    isInGUISize = false;
-                    initBoard();
-                    repaint();
-                    return;
-                }
-                
-                //medium mode
-                int mediumButtonX = (getWidth() - 150) / 2;
-                int mediumButtonY = (getHeight() - 25) / 2;
-                int mediumButtonWidth = 150;
-                int mediumButtonHeight = 25;
-
-                if (x >= mediumButtonX && x <= mediumButtonX + mediumButtonWidth &&
-                    y >= mediumButtonY && y <= mediumButtonY + mediumButtonHeight) {
-                  setValues(16, 16, 40, 10);
+                handleClick(150, 25, 150, -110, x, y, true, () -> {
+                  setValues(8, 8, 10, 4);
                   isInMenu = false;
                   isInGUISize = false;
                   initBoard();
                   repaint();
                   return;
-                }
+                });
+                
+                //medium mode
+                handleClick(150, 25, 150, -25, x, y, true, () -> {
+                  setValues(16, 16, 40, 10);
+                  isInMenu = false;
+                  isInGUISize = false;
+                  initBoard();
+                  repaint();
+                });
                 
                 //large mode
-                int largeButtonX = (getWidth() - 150) / 2;
-                int largeButtonY = (getHeight() + 30) / 2;
-                int largeButtonWidth = 150;
-                int largeButtonHeight = 25;
-
-                if (x >= largeButtonX && x <= largeButtonX + largeButtonWidth &&
-                    y >= largeButtonY && y <= largeButtonY + largeButtonHeight) {
-                    //System.out.println("large");
-                    setValues(16, 30, 99, 25);
-                    isInMenu = false;
-                    isInGUISize = false;
-                    initBoard();
-                    repaint();
-                    System.out.println("repaint() called after Large click");
-                    return;
-                    
-                }
+                handleClick(150, 25, 150, 110, x, y, true, () -> {
+                  System.out.println("Large Button Clicked");
+                  setValues(16, 30, 99, 25);
+                  isInMenu = false;
+                  isInGUISize = false;
+                  initBoard();
+                  repaint();
+                });
               }
               else if (inGame) {
                   // --- In-game left-click logic (revealing cells) ---
@@ -849,7 +705,6 @@ public class Board extends JPanel {
                   int valueAfterReveal = field[index];
 
                   if (valueBeforeReveal == COVERED_MINE_CELL && valueAfterReveal == MINE_CELL) {
-                      System.out.println("GAME OVER, HIT MINE");
                       statusbar.setText("GAME OVER! You Have " + coinCount + " Coins");
                       inGame = false;
                   }

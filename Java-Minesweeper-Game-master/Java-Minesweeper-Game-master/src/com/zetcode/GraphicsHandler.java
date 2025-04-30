@@ -8,6 +8,7 @@ import java.awt.Graphics;
 public class GraphicsHandler {
 
    private Graphics g;
+   private Board board;
   
    public GraphicsHandler(Graphics passedG) {
      this.g = passedG;
