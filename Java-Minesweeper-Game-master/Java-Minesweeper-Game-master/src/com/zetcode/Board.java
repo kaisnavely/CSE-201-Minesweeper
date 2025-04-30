@@ -11,9 +11,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -73,7 +76,7 @@ public class Board extends JPanel {
     }
 
     private void initBoard() {
-        setPreferredSize(new Dimension(BOARD_WIDTH, BOARD_HEIGHT));
+        setPreferredSize(new Dimension(BOARD_WIDTH, BOARD_HEIGHT + 150));
 
         img = new Image[NUM_IMAGES];
         for (int i = 0; i < NUM_IMAGES; i++) {
@@ -81,6 +84,15 @@ public class Board extends JPanel {
         }
         newGame();
     }
+    private void initLoadBoard() {
+      setPreferredSize(new Dimension(BOARD_WIDTH, BOARD_HEIGHT + 40));
+
+      img = new Image[NUM_IMAGES];
+      for (int i = 0; i < NUM_IMAGES; i++) {
+          img[i] = new ImageIcon("src/resources/" + i + ".png").getImage();
+      }
+      //newGame();
+  }
     
     private void initMenu() {
       setPreferredSize(new Dimension(BOARD_WIDTH, BOARD_HEIGHT));
@@ -139,7 +151,7 @@ public class Board extends JPanel {
   }
     
     private void initTextMode() {
-      setPreferredSize(new Dimension(BOARD_WIDTH + 100, BOARD_HEIGHT + 150));
+      setPreferredSize(new Dimension(BOARD_WIDTH + 150, BOARD_HEIGHT + 150));
       Container parent = getParent();
       while (parent != null && !(parent instanceof JFrame)) {
           parent = parent.getParent();
@@ -199,6 +211,12 @@ public class Board extends JPanel {
                statusbar.setText("You don't have enough coins. Please type 'restart' to Start Over");
                System.out.println("cannot continue");
              }
+            break;
+          case "save":
+            saveGame("data.csv");
+            break;
+          case "load":
+            loadGame("data.csv");
             }
        
       }else if (parts.length >= 3) {
@@ -472,12 +490,18 @@ public class Board extends JPanel {
                 }
 
                 g.drawImage(img[cell], j * CELL_SIZE, i * CELL_SIZE, this);
+                
             }
+            
         }
+        //Save Button
+        graphicHandler.createButton(getWidth(), getHeight(), 45, 20, 45, 20, - getWidth() + 100, getHeight() - 12, getWidth() - 10, getHeight() - 45, "Save", Color.gray);
+        //Load Button
+        graphicHandler.createButton(getWidth(), getHeight(), 45, 20, 45, 20, getWidth() - 20, getHeight() - 12,  -getWidth() + 110, getHeight() - 45, "Load", Color.gray);
 
         if (uncover == 0 && inGame) {
             inGame = false; // Game won
-            showGameOverOverlay = true; // We want to show the overlay
+            showGameOverOverlay = true; 
             statusbar.setText("Game won! Coins: " + coinCount);
             System.out.println("GAME OVER: UI Handled - Win");
         } else if (!inGame) {
@@ -486,16 +510,16 @@ public class Board extends JPanel {
             System.out.println("GAME OVER: UI Handled - Loss");
         }
 
-        // --- DRAW GAME OVER OVERLAY ONLY IF showGameOverOverlay IS TRUE ---
+        
         if (showGameOverOverlay) {
             graphicHandler.setUpGameOverScreen(getWidth(), getHeight());
 
-            graphicHandler.createText(getWidth(), getHeight(), 150, 250, 24, 1, 150, 150, "Game Over", Color.red);
+            graphicHandler.createText(getWidth(), getHeight(), 150, 250, 20, 1, 150, 150, "Game Over", Color.red);
             
             graphicHandler.createText(getWidth(), getHeight(), 150, 200, 12, 0, 150, 150, "You Have " + coinCount + " Coins", Color.white);
 
             if (coinCount > 0) {
-                graphicHandler.createText(getWidth(), getHeight(), 150, 165, 12, 0, 150, 150, "Use " + continueCost + " Coin to Continue?", Color.white);
+                graphicHandler.createText(getWidth(), getHeight(), 150, 165, 10, 0, 150, 150, "Use " + continueCost + " Coin to Continue?", Color.white);
     
                 //continue button
                 graphicHandler.createButton(getWidth(), getHeight(), 100, 25, 100, 125, 100, 175, 100, 25, "Continue", Color.gray);
@@ -535,6 +559,60 @@ public class Board extends JPanel {
       }
     }
     
+    private void saveGame(String filename) {
+      try (ObjectOutputStream out = new ObjectOutputStream(new java.io.FileOutputStream(filename))) {
+          GameState state = new GameState();
+          state.field = this.field;
+          state.minesLeft = this.minesLeft;
+          state.coinCount = this.coinCount;
+          state.N_ROWS = N_ROWS;
+          state.N_COLS = N_COLS;
+          state.N_MINES = N_MINES;
+          state.inGame = this.inGame;
+          out.writeObject(state);
+          System.out.println("Game saved.");
+      } catch (Exception e) {
+          System.out.println("Error saving game: " + e.getMessage());
+          statusbar.setText("Error Saving Game, please try again");
+      }
+    }
+    
+    private void loadGame(String filename) {
+      try (ObjectInputStream in = new ObjectInputStream(new java.io.FileInputStream(filename))) {
+          GameState state = (GameState) in.readObject();
+          this.field = state.field;
+          this.minesLeft = state.minesLeft;
+          this.coinCount = state.coinCount;
+          N_ROWS = state.N_ROWS;
+          N_COLS = state.N_COLS;
+          N_MINES = state.N_MINES;
+          this.inGame = state.inGame;
+          allCells = N_ROWS * N_COLS;
+          BOARD_WIDTH = N_COLS * CELL_SIZE + 1;
+          BOARD_HEIGHT = N_ROWS * CELL_SIZE + 1;
+          if(isInTextView) {
+            setPreferredSize(new Dimension(BOARD_WIDTH + 150, BOARD_HEIGHT + 150));
+          }else {
+            setPreferredSize(new Dimension(BOARD_WIDTH, BOARD_HEIGHT + 40));
+          }
+          
+          Container parent = getParent();
+          while (parent != null && !(parent instanceof JFrame)) {
+              parent = parent.getParent();
+          }
+          if (parent instanceof JFrame) {
+              JFrame frame = (JFrame) parent;
+              frame.pack();
+          }
+          showGameOverOverlay = !inGame; 
+          statusbar.setText("Mines: " + minesLeft + " | Coins: " + coinCount);
+          System.out.println("Game loaded.");
+          repaint();
+      } catch (Exception e) {
+          System.out.println("Error loading game: " + e.getMessage());
+      }
+  }
+    
     private void setValues(int row, int col, int mines, int chests) {
       N_ROWS = row;
       N_COLS = col;
@@ -542,7 +620,12 @@ public class Board extends JPanel {
       INITIAL_CHESTS = chests;
       BOARD_WIDTH = N_COLS * CELL_SIZE + 1;
       BOARD_HEIGHT = N_ROWS * CELL_SIZE + 1;
-      setPreferredSize(new Dimension(BOARD_WIDTH, BOARD_HEIGHT));
+      if(!isInTextView) {
+        setPreferredSize(new Dimension(BOARD_WIDTH, BOARD_HEIGHT + 40));
+      }else {
+        setPreferredSize(new Dimension(BOARD_WIDTH, BOARD_HEIGHT));
+      }
+      
       Container parent = getParent();
       while (parent != null && !(parent instanceof JFrame)) {
           parent = parent.getParent();
@@ -555,7 +638,7 @@ public class Board extends JPanel {
     
     private void handleClick(int buttonWidth, int buttonHeight, int posX, int posY, int x, int y, boolean condition, Runnable func) {
 
-      // Calculate the button's top-left corner based on your current logic
+   //Calculate the button's top-left corner using the same logic as createButton
       int buttonX = (getWidth() - posX) / 2;
       int buttonY = (getHeight() + posY) / 2;
 
@@ -564,7 +647,9 @@ public class Board extends JPanel {
       int buttonBottomY = buttonY + buttonHeight;
 
       // Print the calculated rectangle
+      System.out.println(getHeight());
       System.out.println("Rect: (" + buttonX + ", " + buttonY + ") - (" + buttonBottomX + ", " + buttonBottomY + ")");
+      System.out.println("Pos: " + x + ", " + y); 
 
       // Your original click detection logic
       if (x >= buttonX && x <= buttonBottomX &&
@@ -614,8 +699,12 @@ public class Board extends JPanel {
                       }
                   }
                   updateStatusbar(); // Update status bar text
+                  //save button click handle
+                  
+                  
+                  }
               }
-          }
+          
           // --- Left Click ---
           else if (e.getButton() == MouseEvent.BUTTON1) {
               if (!inGame && showGameOverOverlay) {
@@ -656,30 +745,48 @@ public class Board extends JPanel {
                 //Load Game
                 handleClick(72, 25, 150, 135, x, y, true, () -> {
                   System.out.println("Load Game button clicked!");
+                  
+                  inGame = true;
+                  isInMainmenu = false;
+                  isInMenu = false;
+                  loadGame("data.csv");
+                  initLoadBoard();
+                  repaint();
                 });
                 //TestMode
                 handleClick(72, 25, 6, 135, x, y, true, () -> {
                   System.out.println("Test Mode button clicked!");
                 });
               }else if(!inGame && isInGUISize) {
-                //small mode
-                handleClick(150, 25, 150, -110, x, y, true, () -> {
-                  setValues(8, 8, 10, 4);
-                  isInMenu = false;
-                  isInGUISize = false;
-                  initBoard();
-                  repaint();
-                  return;
-                });
+                AtomicBoolean clickHandled = new AtomicBoolean(false);
+                
+                if(!clickHandled.get()) {
+                  handleClick(150, 25, 150, -125, x, y, true, () -> {
+                    System.out.println("small");
+                    setValues(8, 8, 10, 4);
+                    isInMenu = false;
+                    isInGUISize = false;
+                    initBoard();
+                    repaint();
+                    clickHandled.set(true);
+                    return;
+                  });
+                }
+                
+                
                 
                 //medium mode
-                handleClick(150, 25, 150, -25, x, y, true, () -> {
-                  setValues(16, 16, 40, 10);
-                  isInMenu = false;
-                  isInGUISize = false;
-                  initBoard();
-                  repaint();
-                });
+                if(!clickHandled.get()) {
+                  handleClick(150, 25, 150, -25, x, y, true, () -> {
+                    System.out.println("medium");
+                    setValues(16, 16, 40, 10);
+                    isInMenu = false;
+                    isInGUISize = false;
+                    initBoard();
+                    repaint();
+                  });
+                }
+                
                 
                 //large mode
                 handleClick(150, 25, 150, 110, x, y, true, () -> {
@@ -692,6 +799,21 @@ public class Board extends JPanel {
                 });
               }
               else if (inGame) {
+                handleClick(45, 20, getWidth() - 10, getHeight() - 45, x, y, true, () -> {
+                  System.out.println("Save Button Clicked");
+                  saveGame("data.csv"); // Call your save game function here
+              });
+                
+             // Load Button Click Handling
+                handleClick(45, 20, -getWidth() + 110, getHeight() - 45, x, y, true, () -> {
+                    System.out.println("Load Button Clicked");
+                    inGame = true;
+                    isInMainmenu = false;
+                    isInMenu = false;
+                    loadGame("data.csv");
+                    initLoadBoard();
+                    repaint();
+                });
                   // --- In-game left-click logic (revealing cells) ---
                   if (x < 0 || x >= BOARD_WIDTH || y < 0 || y >= BOARD_HEIGHT) return;
                   // index is already defined
@@ -709,6 +831,7 @@ public class Board extends JPanel {
                       inGame = false;
                   }
                   doRepaint = true;
+                  
               }
           }
 
