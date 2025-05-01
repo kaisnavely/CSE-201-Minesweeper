@@ -291,6 +291,69 @@ public class Board extends JPanel {
           statusbar.setText("Please enter command in the format: action row col");
       }
   }
+    
+    private void loadTestBoard(String filename) {
+      try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(filename))) {
+          List<Integer> tempField = new ArrayList<>();
+          String line;
+          List<String[]> rows = new ArrayList<>();
+
+          while ((line = br.readLine()) != null) {
+              String[] tokens = line.trim().split(",");
+              rows.add(tokens);
+          }
+
+          N_ROWS = rows.size();
+          N_COLS = rows.get(0).length;
+          allCells = N_ROWS * N_COLS;
+          BOARD_WIDTH = N_COLS * CELL_SIZE + 1;
+          BOARD_HEIGHT = N_ROWS * CELL_SIZE + 1;
+          field = new int[allCells];
+
+          for (int i = 0; i < N_ROWS; i++) {
+              for (int j = 0; j < N_COLS; j++) {
+                  int index = i * N_COLS + j;
+                  int val = Integer.parseInt(rows.get(i)[j]);
+                  switch (val) {
+                      case 0 -> field[index] = COVER_FOR_CELL;
+                      case 1 -> field[index] = COVERED_MINE_CELL;
+                      case 2 -> field[index] = COVERED_TREASURE_CELL;
+                      default -> field[index] = COVER_FOR_CELL;
+                  }
+              }
+          }
+          for (int i = 0; i < allCells; i++) {
+              if (field[i] == COVERED_MINE_CELL) {
+                  updateNeighbors(i);
+              }
+          }
+
+          minesLeft = (int) java.util.Arrays.stream(field)
+              .filter(f -> f == COVERED_MINE_CELL)
+              .count();
+          coinCount = 0;
+          continueCost = 1;
+          inGame = true;
+          isInMenu = false;
+          showGameOverOverlay = false;
+
+          updateStatusbar();
+
+          Container parent = getParent();
+          while (parent != null && !(parent instanceof JFrame)) {
+              parent = parent.getParent();
+          }
+          if (parent instanceof JFrame) {
+              ((JFrame) parent).pack();
+          }
+
+          repaint();
+          System.out.println("Test board loaded.");
+      } catch (Exception e) {
+          System.out.println("Failed to load test board: " + e.getMessage());
+          statusbar.setText("Failed to load test board.");
+      }
+  }
 
     private void newGame() {
         inGame = true;
@@ -756,6 +819,8 @@ public class Board extends JPanel {
                 //TestMode
                 handleClick(72, 25, 6, 135, x, y, true, () -> {
                   System.out.println("Test Mode button clicked!");
+                  loadTestBoard("test_board.csv");
+                  initLoadBoard();
                 });
               }else if(!inGame && isInGUISize) {
                 AtomicBoolean clickHandled = new AtomicBoolean(false);
