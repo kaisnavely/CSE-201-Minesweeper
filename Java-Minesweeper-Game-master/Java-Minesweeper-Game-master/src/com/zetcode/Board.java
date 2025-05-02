@@ -58,6 +58,14 @@ public class Board extends JPanel {
     private boolean isInGUISize = false;
     private boolean isInTextSize = false;
     private boolean isInTextView = false;
+    private boolean isInTestBoard = false;
+    
+    //test condition variables
+    private boolean firstEightInOneColumn = false;
+    private boolean noFirstEightAdjacentToEachother = false;
+    private boolean ninthMineAdjacent = false;
+    private boolean tenthMineIsolated = false;
+    private boolean noMoreThanNineTreasures = false;
 
     private int[] field;
     private boolean inGame = false;
@@ -220,73 +228,65 @@ public class Board extends JPanel {
             }
        
       }else if (parts.length >= 3) {
-          String action = parts[0].toLowerCase();
-          try {
-              int row = Integer.parseInt(parts[1]);
-              int col = Integer.parseInt(parts[2]);
-              int index = row * N_COLS + col;
-              int cell = -1;
+        String action = parts[0];
+        int row = 0, col = 0;
+        try {
+            row = Integer.parseInt(parts[1]);
+            col = Integer.parseInt(parts[2]);
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid coordinates!");
+            //continue;
+        }
+       
+        int index = row * N_COLS + col;
+        if (index < 0 || index >= field.length) {
+            System.out.println("Coordinates out of bounds!");
+            //continue;
+        }
 
-              if (index >= 0 && index < allCells) {
-                  cell = field[index];
-                  switch (action) {
-                      case "reveal":
-                        if (!inGame) {
-                          statusbar.setText("Game Over. Restart to play.");
-                      } else if (cell > MINE_CELL && cell < MARKED_MINE_CELL) {
-                          revealCell(index);
-                          if (!inGame) {
-                              statusbar.setText("GAME OVER! You Have " + coinCount + " Coins");
-                          }
-                      } else {
-                          statusbar.setText("Cannot reveal this cell.");
-                      }
-                      break;
-                      case "mark":
-                        if (!inGame) {
-                          statusbar.setText("Game Over. Restart to play.");
-                      } else if (cell <= MINE_CELL || cell >= MARKED_MINE_CELL + MARK_FOR_CELL) {
-                          statusbar.setText("Cannot mark this cell.");
-                      } else if (cell > COVERED_MINE_CELL) {
-                          statusbar.setText("Cell already marked.");
-                      } else if (minesLeft <= 0) {
-                          statusbar.setText("No marks left | Coins: " + coinCount);
-                      } else {
-                          field[index] += (cell == COVERED_TREASURE_CELL) ? MARK_FOR_CELL : MARK_FOR_CELL;
-                          if (cell == COVERED_TREASURE_CELL) {
-                              field[index] = COVERED_TREASURE_CELL + MARK_FOR_CELL;
-                          }
-                          minesLeft--;
-                          updateStatusbar();
-                          repaint();
-                      }
-                          break;
-                      case "unmark":
-                        if (inGame && cell > COVERED_MINE_CELL) {
-                          minesLeft++;
-                          if (cell == COVERED_TREASURE_CELL + MARK_FOR_CELL) {
-                              field[index] = COVERED_TREASURE_CELL;
-                          } else {
-                              field[index] -= MARK_FOR_CELL;
-                          }
-                          updateStatusbar();
-                      } else if (!inGame) {
-                          statusbar.setText("Game Over. Restart to play.");
-                      } else {
-                          statusbar.setText("Cannot unmark this cell.");
-                      }
-                          break;
-                      default:
-                          statusbar.setText("Invalid command.");
-                          break;
-                  }
-                  repaint(); // Update the text representation
-              } else {
-                  statusbar.setText("Invalid row or column.");
-              }
-          } catch (NumberFormatException e) {
-              statusbar.setText("Invalid row or column format.");
-          }
+        if (action.equalsIgnoreCase("reveal")) {
+            System.out.println(row + " " + col);
+            revealCell(index);
+            repaint();
+        }
+        else if (action.equalsIgnoreCase("mark")) {
+          System.out.println("M: " + row + " " + col);
+          
+          if (index > MINE_CELL && index < MARKED_MINE_CELL + MARK_FOR_CELL) { // Added index check
+            if (index <= COVERED_MINE_CELL) { // If it's not already marked
+                if (minesLeft > 0) {
+                    if (index == COVERED_TREASURE_CELL) {
+                        field[index] = COVERED_TREASURE_CELL + MARK_FOR_CELL;
+                        repaint();
+                    } else {
+                        field[index] += MARK_FOR_CELL;
+                    }
+                    minesLeft--;
+                } else {
+                    statusbar.setText("No marks left | Coins: " + coinCount);
+                    
+                }
+            } else {
+                minesLeft++;
+                if (index == COVERED_TREASURE_CELL + MARK_FOR_CELL) {
+                    field[index] = COVERED_TREASURE_CELL; // Restore covered treasure
+                } else {
+                    field[index] -= MARK_FOR_CELL; // Unmark back to covered mine/number
+                }
+            }
+            
+            
+            }
+          
+            /*if (field[index] >= COVER_FOR_CELL && field[index] < MARKED_MINE_CELL + MARK_FOR_CELL) {
+                if (field[index] >= COVERED_MINE_CELL) {
+                    field[index] += MARK_FOR_CELL;
+                } else {
+                    field[index] -= MARK_FOR_CELL;
+                }
+            }*/
+            repaint();
+        }
       } else if(parts.length > 0){
           statusbar.setText("Please enter command in the format: action row col");
       }
@@ -349,6 +349,7 @@ public class Board extends JPanel {
 
           repaint();
           System.out.println("Test board loaded.");
+          isInTestBoard = true;
       } catch (Exception e) {
           System.out.println("Failed to load test board: " + e.getMessage());
           statusbar.setText("Failed to load test board.");
@@ -619,6 +620,28 @@ public class Board extends JPanel {
           //large field button
           graphicHandler.createButton(getWidth(), getHeight(), 150, 25, 100, 175, 100, 230 + (110 - 30), 150, 110, "Large", Color.gray);
         }
+      }
+      
+      if(isInTestBoard && inGame) {
+        graphicHandler.createText(getWidth(), getHeight(), -110, 150, 10, 0, 0, 0, "One Mine in each row" , Color.red);
+        graphicHandler.createText(getWidth(), getHeight(), -120, 130, 9, 0, 0, 0, "and column and Adjacent" , Color.red);
+        
+        graphicHandler.createText(getWidth(), getHeight(), -110, 70, 10, 0, 0, 0, "One Mine with row " , Color.red);
+        graphicHandler.createText(getWidth(), getHeight(), -120, 50, 9, 0, 0, 0, "and column the same" , Color.red);
+        
+        graphicHandler.createText(getWidth(), getHeight(), -110, -10, 10, 0, 0, 0, "Ninth mine adjacent" , Color.red);
+        graphicHandler.createText(getWidth(), getHeight(), -120, -30, 9, 0, 0, 0, "to the 8th" , Color.red);
+        
+        graphicHandler.createText(getWidth(), getHeight(), -110, -80, 10, 0, 0, 0, "Tenth mine isolated from" , Color.red);
+        graphicHandler.createText(getWidth(), getHeight(), -120, -100, 9, 0, 0, 0, "ninth and tenth mines" , Color.red);
+        if(!noMoreThanNineTreasures) {
+          graphicHandler.createText(getWidth(), getHeight(), 110, -80, 10, 0, 0, 0, "No More than nine" , Color.red);
+          graphicHandler.createText(getWidth(), getHeight(), 120, -100, 9, 0, 0, 0, "treasures on the board" , Color.red);
+        }else {
+          graphicHandler.createText(getWidth(), getHeight(), 110, -80, 10, 0, 0, 0, "No More than nine" , Color.green);
+          graphicHandler.createText(getWidth(), getHeight(), 120, -100, 9, 0, 0, 0, "treasures on the board" , Color.green);
+        }
+       
       }
     }
     
