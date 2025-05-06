@@ -15,6 +15,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.ImageIcon;
@@ -62,7 +63,7 @@ public class Board extends JPanel {
     
     //test condition variables
     private boolean firstEightInOneColumn = false;
-    private boolean noFirstEightAdjacentToEachother = false;
+    private boolean noFirstEightAdjacent = false;
     private boolean ninthMineAdjacent = false;
     private boolean tenthMineIsolated = false;
     private boolean noMoreThanNineTreasures = false;
@@ -277,14 +278,6 @@ public class Board extends JPanel {
             
             
             }
-          
-            /*if (field[index] >= COVER_FOR_CELL && field[index] < MARKED_MINE_CELL + MARK_FOR_CELL) {
-                if (field[index] >= COVERED_MINE_CELL) {
-                    field[index] += MARK_FOR_CELL;
-                } else {
-                    field[index] -= MARK_FOR_CELL;
-                }
-            }*/
             repaint();
         }
       } else if(parts.length > 0){
@@ -303,6 +296,11 @@ public class Board extends JPanel {
               rows.add(tokens);
           }
 
+          HashSet<Integer> usedMineColumns = new HashSet<>();
+          HashSet<Integer> usedMineRows = new HashSet<>();
+          
+          int numOfTreasures = 0;
+          int numOfMines = 0;
           N_ROWS = rows.size();
           N_COLS = rows.get(0).length;
           allCells = N_ROWS * N_COLS;
@@ -315,10 +313,31 @@ public class Board extends JPanel {
                   int index = i * N_COLS + j;
                   int val = Integer.parseInt(rows.get(i)[j]);
                   switch (val) {
-                      case 0 -> field[index] = COVER_FOR_CELL;
-                      case 1 -> field[index] = COVERED_MINE_CELL;
-                      case 2 -> field[index] = COVERED_TREASURE_CELL;
-                      default -> field[index] = COVER_FOR_CELL;
+                      case 0: 
+                        field[index] = COVER_FOR_CELL;
+                        break;
+                      case 1:  
+                        field[index] = COVERED_MINE_CELL;
+                        
+                        if(!usedMineColumns.contains(j)) {
+                          usedMineColumns.add(j);
+                        }
+                        
+                        if(!usedMineRows.contains(i)) {
+                          usedMineRows.add(i);
+                        }
+                        
+                        
+                        
+                        numOfMines++;
+                        break;
+                      case 2: 
+                        field[index] = COVERED_TREASURE_CELL;
+                        numOfTreasures++;
+                        break;
+                      default: 
+                        field[index] = COVER_FOR_CELL;
+                        break;
                   }
               }
           }
@@ -336,7 +355,16 @@ public class Board extends JPanel {
           inGame = true;
           isInMenu = false;
           showGameOverOverlay = false;
-
+          if(numOfTreasures <= 9) {
+            noMoreThanNineTreasures = true;
+          }
+          
+          for(int i = 0; i < N_COLS; i++) {
+            if(usedMineColumns.contains(i) && usedMineRows.contains(i) && numOfMines > 8) {
+              noFirstEightAdjacent = true;
+            }
+          }
+          
           updateStatusbar();
 
           Container parent = getParent();
@@ -486,7 +514,6 @@ public class Board extends JPanel {
           }else {
             colNumbers.append(String.format("%-3d", j));
           }
-             // Format numbers with consistent spacing
         }
         g.drawString(colNumbers.toString(), 17, 30);
         y += 20; // Move down after column numbers
@@ -623,22 +650,43 @@ public class Board extends JPanel {
       }
       
       if(isInTestBoard && inGame) {
-        graphicHandler.createText(getWidth(), getHeight(), -110, 150, 10, 0, 0, 0, "One Mine in each row" , Color.red);
-        graphicHandler.createText(getWidth(), getHeight(), -120, 130, 9, 0, 0, 0, "and column and Adjacent" , Color.red);
+        if(firstEightInOneColumn) {
+          graphicHandler.createText(getWidth(), getHeight(), -110, 150, 10, 0, 0, 0, "One Mine in each row" , Color.GREEN);
+          graphicHandler.createText(getWidth(), getHeight(), -120, 130, 9, 0, 0, 0, "and column and Adjacent" , Color.GREEN);
+        }else {
+          graphicHandler.createText(getWidth(), getHeight(), -110, 150, 10, 0, 0, 0, "One Mine in each row" , Color.red);
+          graphicHandler.createText(getWidth(), getHeight(), -120, 130, 9, 0, 0, 0, "and column and Adjacent" , Color.red);
+        }
         
-        graphicHandler.createText(getWidth(), getHeight(), -110, 70, 10, 0, 0, 0, "One Mine with row " , Color.red);
-        graphicHandler.createText(getWidth(), getHeight(), -120, 50, 9, 0, 0, 0, "and column the same" , Color.red);
+        if(noFirstEightAdjacent) {
+          graphicHandler.createText(getWidth(), getHeight(), -110, 70, 10, 0, 0, 0, "One Mine with row " , Color.green);
+          graphicHandler.createText(getWidth(), getHeight(), -120, 50, 9, 0, 0, 0, "and column the same" , Color.green);
+        }else {
+          graphicHandler.createText(getWidth(), getHeight(), -110, 70, 10, 0, 0, 0, "One Mine with row " , Color.red);
+          graphicHandler.createText(getWidth(), getHeight(), -120, 50, 9, 0, 0, 0, "and column the same" , Color.red);
+        }
+       
+        if(ninthMineAdjacent) {
+          graphicHandler.createText(getWidth(), getHeight(), -110, -10, 10, 0, 0, 0, "Ninth mine adjacent" , Color.green);
+          graphicHandler.createText(getWidth(), getHeight(), -120, -30, 9, 0, 0, 0, "to the 8th" , Color.green);
+        }else {
+          graphicHandler.createText(getWidth(), getHeight(), -110, -10, 10, 0, 0, 0, "Ninth mine adjacent" , Color.red);
+          graphicHandler.createText(getWidth(), getHeight(), -120, -30, 9, 0, 0, 0, "to the 8th" , Color.red);
+        }
         
-        graphicHandler.createText(getWidth(), getHeight(), -110, -10, 10, 0, 0, 0, "Ninth mine adjacent" , Color.red);
-        graphicHandler.createText(getWidth(), getHeight(), -120, -30, 9, 0, 0, 0, "to the 8th" , Color.red);
+        if(tenthMineIsolated) {
+          graphicHandler.createText(getWidth(), getHeight(), -110, -80, 10, 0, 0, 0, "Tenth mine isolated from" , Color.green);
+          graphicHandler.createText(getWidth(), getHeight(), -120, -100, 9, 0, 0, 0, "ninth and tenth mines" , Color.green);
+        }else {
+          graphicHandler.createText(getWidth(), getHeight(), -110, -80, 10, 0, 0, 0, "Tenth mine isolated from" , Color.red);
+          graphicHandler.createText(getWidth(), getHeight(), -120, -100, 9, 0, 0, 0, "ninth and tenth mines" , Color.red);
+        }
         
-        graphicHandler.createText(getWidth(), getHeight(), -110, -80, 10, 0, 0, 0, "Tenth mine isolated from" , Color.red);
-        graphicHandler.createText(getWidth(), getHeight(), -120, -100, 9, 0, 0, 0, "ninth and tenth mines" , Color.red);
         if(!noMoreThanNineTreasures) {
           graphicHandler.createText(getWidth(), getHeight(), 110, -80, 10, 0, 0, 0, "No More than nine" , Color.red);
           graphicHandler.createText(getWidth(), getHeight(), 120, -100, 9, 0, 0, 0, "treasures on the board" , Color.red);
         }else {
-          graphicHandler.createText(getWidth(), getHeight(), 110, -80, 10, 0, 0, 0, "No More than nine" , Color.green);
+          graphicHandler.createText(getWidth(), getHeight(), 110, -80, 10, 0, 0, 0, "No More than nine" , Color.GREEN);
           graphicHandler.createText(getWidth(), getHeight(), 120, -100, 9, 0, 0, 0, "treasures on the board" , Color.green);
         }
        
@@ -785,8 +833,6 @@ public class Board extends JPanel {
                       }
                   }
                   updateStatusbar(); // Update status bar text
-                  //save button click handle
-                  
                   
                   }
               }
@@ -794,7 +840,6 @@ public class Board extends JPanel {
           // --- Left Click ---
           else if (e.getButton() == MouseEvent.BUTTON1) {
               if (!inGame && showGameOverOverlay) {
-                  
                   // --- Game Over Overlay Click Handling ---
                   handleClick(100, 25, 100, 25, x, y, coinCount > 0, () -> {
                     System.out.println("Continue button clicked!");
@@ -842,7 +887,7 @@ public class Board extends JPanel {
                 //TestMode
                 handleClick(72, 25, 6, 135, x, y, true, () -> {
                   System.out.println("Test Mode button clicked!");
-                  loadTestBoard("test_board.csv");
+                  loadTestBoard("test_board_2.csv");
                   initLoadBoard();
                 });
               }else if(!inGame && isInGUISize) {
