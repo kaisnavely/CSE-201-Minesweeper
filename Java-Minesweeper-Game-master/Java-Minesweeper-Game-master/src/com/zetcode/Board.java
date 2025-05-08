@@ -226,7 +226,16 @@ public class Board extends JPanel {
             break;
           case "load":
             loadGame("data.csv");
+            break;
+          case "back":
+            System.out.println("back");
+            isInMenu = true;
+            isInTextSize = true;
+            inGame =false;
+            repaint();
+            break;
             }
+          
        
       }else if (parts.length >= 3) {
         String action = parts[0];
@@ -253,8 +262,8 @@ public class Board extends JPanel {
         else if (action.equalsIgnoreCase("mark")) {
           System.out.println("M: " + row + " " + col);
           
-          if (index > MINE_CELL && index < MARKED_MINE_CELL + MARK_FOR_CELL) { // Added index check
-            if (index <= COVERED_MINE_CELL) { // If it's not already marked
+          if (index > MINE_CELL && index < MARKED_MINE_CELL + MARK_FOR_CELL) { 
+            if (index <= COVERED_MINE_CELL) { 
                 if (minesLeft > 0) {
                     if (index == COVERED_TREASURE_CELL) {
                         field[index] = COVERED_TREASURE_CELL + MARK_FOR_CELL;
@@ -270,9 +279,9 @@ public class Board extends JPanel {
             } else {
                 minesLeft++;
                 if (index == COVERED_TREASURE_CELL + MARK_FOR_CELL) {
-                    field[index] = COVERED_TREASURE_CELL; // Restore covered treasure
+                    field[index] = COVERED_TREASURE_CELL; 
                 } else {
-                    field[index] -= MARK_FOR_CELL; // Unmark back to covered mine/number
+                    field[index] -= MARK_FOR_CELL; 
                 }
             }
             
@@ -314,10 +323,10 @@ public class Board extends JPanel {
                   int val = Integer.parseInt(rows.get(i)[j]);
                   switch (val) {
                       case 0: 
-                        field[index] = COVER_FOR_CELL;
+                        //field[index] = COVER_FOR_CELL;
                         break;
                       case 1:  
-                        field[index] = COVERED_MINE_CELL;
+                        field[index] = MINE_CELL;
                         
                         if(!usedMineColumns.contains(j)) {
                           usedMineColumns.add(j);
@@ -332,7 +341,7 @@ public class Board extends JPanel {
                         numOfMines++;
                         break;
                       case 2: 
-                        field[index] = COVERED_TREASURE_CELL;
+                        field[index] = TREASURE_CELL;
                         numOfTreasures++;
                         break;
                       default: 
@@ -602,7 +611,7 @@ public class Board extends JPanel {
         }
 
         
-        if (showGameOverOverlay) {
+        if (showGameOverOverlay && !isInTestBoard) {
             graphicHandler.setUpGameOverScreen(getWidth(), getHeight());
 
             graphicHandler.createText(getWidth(), getHeight(), 150, 250, 20, 1, 150, 150, "Game Over", Color.red);
@@ -649,7 +658,7 @@ public class Board extends JPanel {
         }
       }
       
-      if(isInTestBoard && inGame) {
+      if(isInTestBoard) {
         if(firstEightInOneColumn) {
           graphicHandler.createText(getWidth(), getHeight(), -110, 150, 10, 0, 0, 0, "One Mine in each row" , Color.GREEN);
           graphicHandler.createText(getWidth(), getHeight(), -120, 130, 9, 0, 0, 0, "and column and Adjacent" , Color.GREEN);
