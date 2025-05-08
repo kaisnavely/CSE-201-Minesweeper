@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -24,6 +25,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
+@SuppressWarnings("serial")
 public class Board extends JPanel {
 
     private static final int NUM_IMAGES = 14;
@@ -89,7 +91,7 @@ public class Board extends JPanel {
 
         img = new Image[NUM_IMAGES];
         for (int i = 0; i < NUM_IMAGES; i++) {
-            img[i] = new ImageIcon("src/resources/" + i + ".png").getImage();
+            img[i] = new ImageIcon("Java-Minesweeper-Game-master/src/resources/" + i + ".png").getImage();
         }
         newGame();
     }
@@ -98,7 +100,7 @@ public class Board extends JPanel {
 
       img = new Image[NUM_IMAGES];
       for (int i = 0; i < NUM_IMAGES; i++) {
-          img[i] = new ImageIcon("src/resources/" + i + ".png").getImage();
+          img[i] = new ImageIcon("Java-Minesweeper-Game-master/src/resources/" + i + ".png").getImage();
       }
       //newGame();
   }
@@ -307,7 +309,8 @@ public class Board extends JPanel {
           BOARD_WIDTH = N_COLS * CELL_SIZE + 1;
           BOARD_HEIGHT = N_ROWS * CELL_SIZE + 1;
           field = new int[allCells];
-
+          
+          List <Integer> positionsOfMines = new ArrayList<>();
           for (int i = 0; i < N_ROWS; i++) {
               for (int j = 0; j < N_COLS; j++) {
                   int index = i * N_COLS + j;
@@ -318,6 +321,7 @@ public class Board extends JPanel {
                         break;
                       case 1:  
                         field[index] = COVERED_MINE_CELL;
+                        positionsOfMines.add(index);
                         
                         if(!usedMineColumns.contains(j)) {
                           usedMineColumns.add(j);
@@ -341,13 +345,14 @@ public class Board extends JPanel {
                   }
               }
           }
+          // Update neighbor cells for mines
           for (int i = 0; i < allCells; i++) {
               if (field[i] == COVERED_MINE_CELL) {
                   updateNeighbors(i);
               }
           }
 
-          minesLeft = (int) java.util.Arrays.stream(field)
+         minesLeft = (int) java.util.Arrays.stream(field)
               .filter(f -> f == COVERED_MINE_CELL)
               .count();
           coinCount = 0;
@@ -355,6 +360,33 @@ public class Board extends JPanel {
           inGame = true;
           isInMenu = false;
           showGameOverOverlay = false;
+          
+         if( numOfMines >= 8) {
+        	 int firstColumn = positionsOfMines.get(0) % N_COLS;
+        	 boolean allInSameColumn = true;
+        	 for(int i=0; i<Math.min(8, positionsOfMines.size());i++) {
+        		 if(positionsOfMines.get(i)% N_COLS != firstColumn) {
+        			 allInSameColumn = false;
+        		 }
+        		 
+        	 }
+        	 
+        	 if (allInSameColumn) {
+        		 firstEightInOneColumn  = true;
+        		 //redistributes mines 
+        		redistributeMines(positionsOfMines,firstColumn);
+        		 
+        		 
+        	 }
+        	 
+         }
+          
+          
+          
+          
+          
+          
+          
           if(numOfTreasures <= 9) {
             noMoreThanNineTreasures = true;
           }
@@ -384,7 +416,24 @@ public class Board extends JPanel {
       }
   }
 
-    private void newGame() {
+    
+    
+    
+    
+    private void redistributeMines(List<Integer> positionsOfMines, int mineLoadedColumn) {
+    	
+	Random random  = new Random();
+	
+	int minesToMove = Math.min(4, positionsOfMines.size()/2);
+	
+	HashSet<Integer> usedPositions = new HashSet<>(positionsOfMines);
+	
+	
+	
+		
+	}
+
+	private void newGame() {
         inGame = true;
         minesLeft = N_MINES;
         allCells = N_ROWS * N_COLS;
