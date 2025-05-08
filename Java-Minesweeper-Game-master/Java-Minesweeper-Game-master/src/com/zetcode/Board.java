@@ -321,7 +321,10 @@ public class Board extends JPanel {
                         break;
                       case 1:  
                         field[index] = COVERED_MINE_CELL;
+<<<<<<< HEAD
                         positionsOfMines.add(index);
+=======
+>>>>>>> parent of c1af49f (Changed May 8)
                         
                         if(!usedMineColumns.contains(j)) {
                           usedMineColumns.add(j);
