@@ -7,25 +7,30 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Image;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.ImageIcon;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
-@SuppressWarnings("serial")
 public class Board extends JPanel {
 
     private static final int NUM_IMAGES = 14;
@@ -91,7 +96,7 @@ public class Board extends JPanel {
 
         img = new Image[NUM_IMAGES];
         for (int i = 0; i < NUM_IMAGES; i++) {
-            img[i] = new ImageIcon("Java-Minesweeper-Game-master/src/resources/" + i + ".png").getImage();
+            img[i] = new ImageIcon("src/resources/" + i + ".png").getImage();
         }
         newGame();
     }
@@ -100,7 +105,7 @@ public class Board extends JPanel {
 
       img = new Image[NUM_IMAGES];
       for (int i = 0; i < NUM_IMAGES; i++) {
-          img[i] = new ImageIcon("Java-Minesweeper-Game-master/src/resources/" + i + ".png").getImage();
+          img[i] = new ImageIcon("src/resources/" + i + ".png").getImage();
       }
       //newGame();
   }
@@ -228,7 +233,16 @@ public class Board extends JPanel {
             break;
           case "load":
             loadGame("data.csv");
+            break;
+          case "back":
+            System.out.println("back");
+            isInMenu = true;
+            isInTextSize = true;
+            inGame =false;
+            repaint();
+            break;
             }
+          
        
       }else if (parts.length >= 3) {
         String action = parts[0];
@@ -255,8 +269,8 @@ public class Board extends JPanel {
         else if (action.equalsIgnoreCase("mark")) {
           System.out.println("M: " + row + " " + col);
           
-          if (index > MINE_CELL && index < MARKED_MINE_CELL + MARK_FOR_CELL) { // Added index check
-            if (index <= COVERED_MINE_CELL) { // If it's not already marked
+          if (index > MINE_CELL && index < MARKED_MINE_CELL + MARK_FOR_CELL) { 
+            if (index <= COVERED_MINE_CELL) { 
                 if (minesLeft > 0) {
                     if (index == COVERED_TREASURE_CELL) {
                         field[index] = COVERED_TREASURE_CELL + MARK_FOR_CELL;
@@ -272,9 +286,9 @@ public class Board extends JPanel {
             } else {
                 minesLeft++;
                 if (index == COVERED_TREASURE_CELL + MARK_FOR_CELL) {
-                    field[index] = COVERED_TREASURE_CELL; // Restore covered treasure
+                    field[index] = COVERED_TREASURE_CELL; 
                 } else {
-                    field[index] -= MARK_FOR_CELL; // Unmark back to covered mine/number
+                    field[index] -= MARK_FOR_CELL; 
                 }
             }
             
@@ -287,156 +301,141 @@ public class Board extends JPanel {
       }
   }
     
-    private void loadTestBoard(String filename) {
-      try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(filename))) {
-          List<Integer> tempField = new ArrayList<>();
-          String line;
-          List<String[]> rows = new ArrayList<>();
 
-          while ((line = br.readLine()) != null) {
-              String[] tokens = line.trim().split(",");
-              rows.add(tokens);
-          }
+private void loadTestBoard(String filename) {
+    try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+        List<String[]> rows = new ArrayList<>();
+        String line;
 
-          HashSet<Integer> usedMineColumns = new HashSet<>();
-          HashSet<Integer> usedMineRows = new HashSet<>();
-          
-          int numOfTreasures = 0;
-          int numOfMines = 0;
-          N_ROWS = rows.size();
-          N_COLS = rows.get(0).length;
-          allCells = N_ROWS * N_COLS;
-          BOARD_WIDTH = N_COLS * CELL_SIZE + 1;
-          BOARD_HEIGHT = N_ROWS * CELL_SIZE + 1;
-          field = new int[allCells];
-          
-          List <Integer> positionsOfMines = new ArrayList<>();
-          for (int i = 0; i < N_ROWS; i++) {
-              for (int j = 0; j < N_COLS; j++) {
-                  int index = i * N_COLS + j;
-                  int val = Integer.parseInt(rows.get(i)[j]);
-                  switch (val) {
-                      case 0: 
-                        field[index] = COVER_FOR_CELL;
-                        break;
-                      case 1:  
+        while ((line = br.readLine()) != null) {
+            String[] tokens = line.trim().split(",");
+            if (tokens.length != 8) throw new IllegalArgumentException("Each row must have 8 values.");
+            rows.add(tokens);
+        }
+
+        if (rows.size() != 8) throw new IllegalArgumentException("Test board must be 8 rows by 8 columns.");
+
+        // Initialize board size
+        N_ROWS = 8;
+        N_COLS = 8;
+        allCells = N_ROWS * N_COLS;
+        BOARD_WIDTH = N_COLS * CELL_SIZE + 1;
+        BOARD_HEIGHT = N_ROWS * CELL_SIZE + 1;
+        field = new int[allCells];
+
+        List<Point> mines = new ArrayList<>();
+        List<Point> treasures = new ArrayList<>();
+
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                int val = Integer.parseInt(rows.get(i)[j]);
+                int index = i * 8 + j;
+                switch (val) {
+                    case 0 -> field[index] = COVER_FOR_CELL;
+                    case 1 -> {
                         field[index] = COVERED_MINE_CELL;
-<<<<<<< HEAD
-                        positionsOfMines.add(index);
-=======
->>>>>>> parent of c1af49f (Changed May 8)
-                        
-                        if(!usedMineColumns.contains(j)) {
-                          usedMineColumns.add(j);
-                        }
-                        
-                        if(!usedMineRows.contains(i)) {
-                          usedMineRows.add(i);
-                        }
-                        
-                        
-                        
-                        numOfMines++;
-                        break;
-                      case 2: 
+                        mines.add(new Point(i, j));
+                    }
+                    case 2 -> {
                         field[index] = COVERED_TREASURE_CELL;
-                        numOfTreasures++;
-                        break;
-                      default: 
-                        field[index] = COVER_FOR_CELL;
-                        break;
-                  }
-              }
-          }
-          // Update neighbor cells for mines
-          for (int i = 0; i < allCells; i++) {
-              if (field[i] == COVERED_MINE_CELL) {
-                  updateNeighbors(i);
-              }
-          }
-
-         minesLeft = (int) java.util.Arrays.stream(field)
-              .filter(f -> f == COVERED_MINE_CELL)
-              .count();
-          coinCount = 0;
-          continueCost = 1;
-          inGame = true;
-          isInMenu = false;
-          showGameOverOverlay = false;
-          
-         if( numOfMines >= 8) {
-        	 int firstColumn = positionsOfMines.get(0) % N_COLS;
-        	 boolean allInSameColumn = true;
-        	 for(int i=0; i<Math.min(8, positionsOfMines.size());i++) {
-        		 if(positionsOfMines.get(i)% N_COLS != firstColumn) {
-        			 allInSameColumn = false;
-        		 }
-        		 
-        	 }
-        	 
-        	 if (allInSameColumn) {
-        		 firstEightInOneColumn  = true;
-        		 //redistributes mines 
-        		redistributeMines(positionsOfMines,firstColumn);
-        		 
-        		 
-        	 }
-        	 
-         }
-          
-          
-          
-          
-          
-          
-          
-          if(numOfTreasures <= 9) {
-            noMoreThanNineTreasures = true;
-          }
-          
-          for(int i = 0; i < N_COLS; i++) {
-            if(usedMineColumns.contains(i) && usedMineRows.contains(i) && numOfMines > 8) {
-              noFirstEightAdjacent = true;
+                        treasures.add(new Point(i, j));
+                    }
+                    default -> throw new IllegalArgumentException("Invalid cell value: must be 0, 1, or 2");
+                }
             }
-          }
-          
-          updateStatusbar();
+        }
 
-          Container parent = getParent();
-          while (parent != null && !(parent instanceof JFrame)) {
-              parent = parent.getParent();
-          }
-          if (parent instanceof JFrame) {
-              ((JFrame) parent).pack();
-          }
+        // === VALIDATION LOGIC ===
+        if (mines.size() != 10) throw new IllegalArgumentException("Test board must contain exactly 10 mines.");
+        if (treasures.size() > 9) throw new IllegalArgumentException("Test board must not contain more than 9 treasures.");
 
-          repaint();
-          System.out.println("Test board loaded.");
-          isInTestBoard = true;
-      } catch (Exception e) {
-          System.out.println("Failed to load test board: " + e.getMessage());
-          statusbar.setText("Failed to load test board.");
-      }
-  }
+        Set<Integer> uniqueRows = new HashSet<>();
+        Set<Integer> uniqueCols = new HashSet<>();
+        boolean hasDiagonalMine = false;
 
-    
-    
-    
-    
-    private void redistributeMines(List<Integer> positionsOfMines, int mineLoadedColumn) {
-    	
-	Random random  = new Random();
-	
-	int minesToMove = Math.min(4, positionsOfMines.size()/2);
-	
-	HashSet<Integer> usedPositions = new HashSet<>(positionsOfMines);
-	
-	
-	
-		
-	}
+        // Validate first 8 mines
+        for (int k = 0; k < 8; k++) {
+            Point p = mines.get(k);
+            if (!uniqueRows.add(p.x)) throw new IllegalArgumentException("Duplicate row in first 8 mines.");
+            if (!uniqueCols.add(p.y)) throw new IllegalArgumentException("Duplicate column in first 8 mines.");
 
-	private void newGame() {
+            if (p.x == p.y) hasDiagonalMine = true;
+
+            for (int m = 0; m < k; m++) {
+                Point other = mines.get(m);
+                if (p.x == other.x || p.y == other.y)
+                    throw new IllegalArgumentException("First 8 mines must not be adjacent by row or column.");
+            }
+        }
+
+        if (!hasDiagonalMine) throw new IllegalArgumentException("One of the first 8 mines must be on the diagonal (row == col).");
+
+        Point ninth = mines.get(8);
+        Point tenth = mines.get(9);
+
+        boolean ninthAdjacent = false;
+        for (int i = 0; i < 8; i++) {
+            Point p = mines.get(i);
+            if (p.x == ninth.x || p.y == ninth.y) {
+                ninthAdjacent = true;
+                break;
+            }
+        }
+
+        if (!ninthAdjacent) throw new IllegalArgumentException("9th mine must be adjacent to one of the first 8 mines by row or column.");
+
+        boolean tenthIsolated = true;
+        for (int i = 0; i < 9; i++) {
+            Point p = mines.get(i);
+            if (p.x == tenth.x || p.y == tenth.y) {
+                tenthIsolated = false;
+                break;
+            }
+        }
+
+        if (!tenthIsolated) throw new IllegalArgumentException("10th mine must be isolated — no shared rows/cols with other mines.");
+
+        // === IF WE REACH HERE, BOARD IS VALID ===
+        for (int i = 0; i < allCells; i++) {
+            if (field[i] == COVERED_MINE_CELL) {
+                updateNeighbors(i);
+            }
+        }
+
+        minesLeft = 10;
+        coinCount = 0;
+        continueCost = 1;
+        inGame = true;
+        isInMenu = false;
+        showGameOverOverlay = false;
+        updateStatusbar();
+
+        Container parent = getParent();
+        while (parent != null && !(parent instanceof JFrame)) {
+            parent = parent.getParent();
+        }
+        if (parent instanceof JFrame) {
+            ((JFrame) parent).pack();
+        }
+
+        repaint();
+        System.out.println("Test board loaded successfully.");
+        isInTestBoard = true;
+
+    } catch (Exception e) {
+        System.out.println("Failed to load test board: " + e.getMessage());
+        statusbar.setText("Invalid test board: " + e.getMessage());
+        promptTestModeAgain(); // <== You'll need to implement this
+    }
+}
+//Here's a little extra for testing multiple times 
+private void promptTestModeAgain() {
+    isInMainmenu = true;
+    isInMenu = true;
+    repaint();
+}
+
+    private void newGame() {
         inGame = true;
         minesLeft = N_MINES;
         allCells = N_ROWS * N_COLS;
@@ -641,6 +640,9 @@ public class Board extends JPanel {
         graphicHandler.createButton(getWidth(), getHeight(), 45, 20, 45, 20, - getWidth() + 100, getHeight() - 12, getWidth() - 10, getHeight() - 45, "Save", Color.gray);
         //Load Button
         graphicHandler.createButton(getWidth(), getHeight(), 45, 20, 45, 20, getWidth() - 20, getHeight() - 12,  -getWidth() + 110, getHeight() - 45, "Load", Color.gray);
+        //back button
+        graphicHandler.createButton(getWidth(), getHeight(), 80, 20, 80, 20,
+            getWidth() - 90, getHeight() - 80, getWidth() - 90, getHeight() - 80, "Back", Color.gray);
 
         if (uncover == 0 && inGame) {
             inGame = false; // Game won
@@ -654,7 +656,7 @@ public class Board extends JPanel {
         }
 
         
-        if (showGameOverOverlay) {
+        if (showGameOverOverlay && !isInTestBoard) {
             graphicHandler.setUpGameOverScreen(getWidth(), getHeight());
 
             graphicHandler.createText(getWidth(), getHeight(), 150, 250, 20, 1, 150, 150, "Game Over", Color.red);
@@ -701,7 +703,7 @@ public class Board extends JPanel {
         }
       }
       
-      if(isInTestBoard && inGame) {
+      if(isInTestBoard) {
         if(firstEightInOneColumn) {
           graphicHandler.createText(getWidth(), getHeight(), -110, 150, 10, 0, 0, 0, "One Mine in each row" , Color.GREEN);
           graphicHandler.createText(getWidth(), getHeight(), -120, 130, 9, 0, 0, 0, "and column and Adjacent" , Color.GREEN);
@@ -939,7 +941,15 @@ public class Board extends JPanel {
                 //TestMode
                 handleClick(72, 25, 6, 135, x, y, true, () -> {
                   System.out.println("Test Mode button clicked!");
-                  loadTestBoard("test_board_2.csv");
+                  JFileChooser fileChooser = new JFileChooser();
+                  fileChooser.setFileFilter(new FileNameExtensionFilter("CSV Files", "csv"));
+                  fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+                  int result = fileChooser.showOpenDialog(null);
+                  if(result == JFileChooser.APPROVE_OPTION) {        
+                      System.out.println("File chosen: " + fileChooser.getSelectedFile());
+                      loadTestBoard(fileChooser.getSelectedFile().getPath());
+                  }
+                  
                   initLoadBoard();
                 });
               }else if(!inGame && isInGUISize) {
