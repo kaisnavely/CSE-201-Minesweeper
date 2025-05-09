@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Point;
@@ -180,7 +181,7 @@ public class Board extends JPanel {
   }
     
     private void initTextMode() {
-      setPreferredSize(new Dimension(BOARD_WIDTH + 150, BOARD_HEIGHT + 150));
+      setPreferredSize(new Dimension(BOARD_WIDTH + 170, BOARD_HEIGHT + 200));
       Container parent = getParent();
       while (parent != null && !(parent instanceof JFrame)) {
           parent = parent.getParent();
@@ -191,7 +192,11 @@ public class Board extends JPanel {
       }
       setLayout(new BorderLayout());
 
+      JPanel southPanel = new JPanel(new BorderLayout());
+      
       JLabel textModeLabel = new JLabel("Enter command (e.g., reveal 0 0, mark 1 2):");
+      JLabel textModeLabel1 = new JLabel("Type \"restart\" to restart, and \"continue\" to continue on loss");
+      textModeLabel1.setFont(new Font("Arial", Font.BOLD, 9));
       commandInput = new JTextField();
       commandInput.addActionListener(new ActionListener() {
           @Override
@@ -207,7 +212,9 @@ public class Board extends JPanel {
 
       removeMouseListener(getMouseListeners()[0]);
       add(textModeLabel, BorderLayout.NORTH);
-      add(commandInput, BorderLayout.SOUTH);
+      southPanel.add(textModeLabel1, BorderLayout.NORTH);
+      southPanel.add(commandInput, BorderLayout.SOUTH);
+      add(southPanel, BorderLayout.SOUTH);
 
       
       newGame();
@@ -442,23 +449,6 @@ private void promptTestModeAgain() {
     repaint();
 }
 
-    
-    
-    
-    
-    private void redistributeMines(List<Integer> positionsOfMines, int mineLoadedColumn) {
-    	
-	Random random  = new Random();
-	
-	int minesToMove = Math.min(4, positionsOfMines.size()/2);
-	
-	HashSet<Integer> usedPositions = new HashSet<>(positionsOfMines);
-	
-	
-	
-		
-	}
-
 	private void newGame() {
         inGame = true;
         minesLeft = N_MINES;
@@ -582,15 +572,53 @@ private void promptTestModeAgain() {
         String rowNumberFormat = "%-" + rowNumberWidth + "d";
         String initialSpacing = " ".repeat(rowNumberWidth);
         
-        StringBuilder colNumbers = new StringBuilder(initialSpacing); // Initial spacing for row numbers
-        for (int j = 0; j < N_COLS; j++) {
-          if(j < 10) {
-            colNumbers.append(String.format("%-2d", j));
-          }else {
-            colNumbers.append(String.format("%-3d", j));
-          }
+        StringBuilder colNumbers = new StringBuilder(initialSpacing);// Initial spacing for row numbers
+        if(!(N_MINES == 99)) {
+        	for (int j = 0; j < N_COLS; j++) {
+                if(j < 10) {
+                  colNumbers.append(String.format("%-2d", j));
+                }else {
+                  colNumbers.append(String.format("%-3d", j));
+                }
+              }
+        }else {
+        	//for large mode specifically
+        	for (int j = 0; j < N_COLS; j++) {
+                if(j < 10) {
+                  colNumbers.append(String.format("%-2d", j));
+                }else {
+                  colNumbers.append(j);
+                  colNumbers.append(" ");
+                }
+              }
         }
-        g.drawString(colNumbers.toString(), 17, 30);
+        Font digitFont = new Font("Monospaced", Font.PLAIN, 12);
+        g.setFont(digitFont);
+        FontMetrics fm = g.getFontMetrics(digitFont);
+        int x = 45;
+        
+        double spacingAmount = 1;
+        double firstTenAmount = 1;
+        if(N_MINES == 10) {
+        	firstTenAmount = 1.3;
+        	x = 35;
+        }else if(N_MINES == 40) {
+        	spacingAmount = 0.8;
+        }else if(N_MINES == 99) {
+        	spacingAmount = 0.55;
+        }
+        for (int j = 0; j < N_COLS; j++) {
+        	if(j < 10) {
+        		String numberStr = String.valueOf(j);
+                g.drawString(numberStr, x, y);
+                x += fm.stringWidth(numberStr) + (int) (fm.charWidth(' ') * firstTenAmount); // Advance by digit width + half space width
+        	}else {
+        		String numberStr = String.valueOf(j);
+                g.drawString(numberStr, x, y);
+                x += fm.stringWidth(numberStr) + (int) (fm.charWidth(' ') * spacingAmount); // Advance by digit width + half space width
+        	}
+            
+        }
         y += 20; // Move down after column numbers
         
         g.setFont(new Font("Monospaced", Font.PLAIN, 14));
