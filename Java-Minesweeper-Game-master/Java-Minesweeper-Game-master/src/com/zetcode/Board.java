@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -83,6 +82,8 @@ public class Board extends JPanel {
 	private int allCells;
 	private int coinCount = 0;
 	private int continueCost = 1;
+	
+	boolean clickHandled = false;
 
 	private final JLabel statusbar;
 	private JTextField commandInput;
@@ -302,7 +303,7 @@ public class Board extends JPanel {
 	private void loadTestBoard(String filename) {
 		isInTestBoard = true;
 		try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(filename))) {
-			List<Integer> tempField = new ArrayList<>();
+			
 			String line;
 			List<String[]> rows = new ArrayList<>();
 
@@ -310,12 +311,6 @@ public class Board extends JPanel {
 				String[] tokens = line.trim().split(",");
 				rows.add(tokens);
 			}
-
-			HashSet<Integer> usedMineColumns = new HashSet<>();
-			HashSet<Integer> usedMineRows = new HashSet<>();
-
-			int numOfTreasures = 0;
-			int numOfMines = 0;
 			N_ROWS = rows.size();
 			N_COLS = rows.get(0).length;
 			allCells = N_ROWS * N_COLS;
@@ -331,7 +326,6 @@ public class Board extends JPanel {
 
 			Set<Integer> uniqueRows = new HashSet<>();
 			Set<Integer> uniqueCols = new HashSet<>();
-			boolean hasDiagonalMine = false;
 
 			List<Point> mines = new ArrayList<>();
 			List<Point> treasures = new ArrayList<>();
@@ -364,7 +358,7 @@ public class Board extends JPanel {
 					firstEightInOneColumn = false;
 
 				if (p.x == p.y)
-					hasDiagonalMine = true;
+					
 
 				for (int m = 0; m < k; m++) {
 					Point other = mines.get(m);
@@ -1056,9 +1050,9 @@ public class Board extends JPanel {
 						initLoadBoard();
 					});
 				} else if (!inGame && isInGUISize) {
-					AtomicBoolean clickHandled = new AtomicBoolean(false);
+					
 
-					if (!clickHandled.get()) {
+					if (!clickHandled) {
 						handleClick(150, 25, 150, -125, x, y, true, () -> {
 							System.out.println("small");
 							setValues(8, 8, 10, 4);
@@ -1066,13 +1060,13 @@ public class Board extends JPanel {
 							isInGUISize = false;
 							initBoard();
 							repaint();
-							clickHandled.set(true);
+							clickHandled = true;;
 							return;
 						});
 					}
 
 					// medium mode
-					if (!clickHandled.get()) {
+					if (!clickHandled) {
 						handleClick(150, 25, 150, -25, x, y, true, () -> {
 							System.out.println("medium");
 							setValues(16, 16, 40, 10);
