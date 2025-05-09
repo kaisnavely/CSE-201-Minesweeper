@@ -86,6 +86,8 @@ public class Board extends JPanel {
     private int allCells;
     private int coinCount = 0;
     private int continueCost = 1;
+    
+    Boolean clickHandled = false;
 
     private final JLabel statusbar;
     private JTextField commandInput;
@@ -1037,9 +1039,9 @@ private void promptTestModeAgain() {
                   initLoadBoard();
                 });
               }else if(!inGame && isInGUISize) {
-                AtomicBoolean clickHandled = new AtomicBoolean(false);
                 
-                if(!clickHandled.get()) {
+                
+                if(!clickHandled) {
                   handleClick(150, 25, 150, -125, x, y, true, () -> {
                     System.out.println("small");
                     setValues(8, 8, 10, 4);
@@ -1047,15 +1049,16 @@ private void promptTestModeAgain() {
                     isInGUISize = false;
                     initBoard();
                     repaint();
-                    clickHandled.set(true);
+                    clickHandled = true;
                     return;
                   });
+                  
                 }
                 
                 
                 
                 //medium mode
-                if(!clickHandled.get()) {
+                if(!clickHandled) {
                   handleClick(150, 25, 150, -25, x, y, true, () -> {
                     System.out.println("medium");
                     setValues(16, 16, 40, 10);
