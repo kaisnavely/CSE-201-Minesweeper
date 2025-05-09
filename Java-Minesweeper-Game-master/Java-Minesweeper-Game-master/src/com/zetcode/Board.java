@@ -21,11 +21,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-<<<<<<< HEAD
 import java.util.Set;
-=======
 import java.util.Random;
->>>>>>> e66c81ea08d7eaec6811f6fc0b56170b89d8c3f2
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
@@ -72,6 +69,7 @@ public class Board extends JPanel {
     private boolean isInTextSize = false;
     private boolean isInTextView = false;
     private boolean isInTestBoard = false;
+    boolean back = false;
     
     //test condition variables
     private boolean firstEightInOneColumn = false;
@@ -94,6 +92,7 @@ public class Board extends JPanel {
     public Board(JLabel statusbar) {
         this.statusbar = statusbar;
         initMenu();
+        
     }
 
     private void initBoard() {
@@ -130,6 +129,12 @@ public class Board extends JPanel {
       
       isInMainmenu = false;
       isInTextSize = true;
+      isInMenu = true;
+     //isInMainmenu = true;
+      isInGUISize = false;
+     //isInTextSize = false;
+      isInTextView = false;
+     isInTestBoard = false;
 
       commandInput.addActionListener(new ActionListener() {
           @Override
@@ -155,6 +160,9 @@ public class Board extends JPanel {
                       initTextMode();
                       commandInput.setText("");
                       break;
+                    case "back":
+                    	backButton();
+                    	break;
                     default:
                       commandInput.setText("Either Small, Medium, or Large");
                   }
@@ -238,6 +246,8 @@ public class Board extends JPanel {
             break;
           case "load":
             loadGame("data.csv");
+          case "back":
+        	  backButton();
             }
        
       }else if (parts.length >= 3) {
@@ -298,231 +308,133 @@ public class Board extends JPanel {
   }
     
 
-<<<<<<< HEAD
-private void loadTestBoard(String filename) {
-    try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
-        List<String[]> rows = new ArrayList<>();
-        String line;
 
-        while ((line = br.readLine()) != null) {
-            String[] tokens = line.trim().split(",");
-            if (tokens.length != 8) throw new IllegalArgumentException("Each row must have 8 values.");
-            rows.add(tokens);
-        }
+    private void loadTestBoard(String filename) {
+        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+            List<String[]> rows = new ArrayList<>();
+            String line;
 
-        if (rows.size() != 8) throw new IllegalArgumentException("Test board must be 8 rows by 8 columns.");
+            while ((line = br.readLine()) != null) {
+                String[] tokens = line.trim().split(",");
+                if (tokens.length != 8) throw new IllegalArgumentException("Each row must have 8 values.");
+                rows.add(tokens);
+            }
 
-        // Initialize board size
-        N_ROWS = 8;
-        N_COLS = 8;
-        allCells = N_ROWS * N_COLS;
-        BOARD_WIDTH = N_COLS * CELL_SIZE + 1;
-        BOARD_HEIGHT = N_ROWS * CELL_SIZE + 1;
-        field = new int[allCells];
+            if (rows.size() != 8) throw new IllegalArgumentException("Test board must be 8 rows by 8 columns.");
 
-        List<Point> mines = new ArrayList<>();
-        List<Point> treasures = new ArrayList<>();
+            // Initialize board size
+            N_ROWS = 8;
+            N_COLS = 8;
+            allCells = N_ROWS * N_COLS;
+            BOARD_WIDTH = N_COLS * CELL_SIZE + 1;
+            BOARD_HEIGHT = N_ROWS * CELL_SIZE + 1;
+            field = new int[allCells];
 
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                int val = Integer.parseInt(rows.get(i)[j]);
-                int index = i * 8 + j;
-                switch (val) {
-                    case 0 -> field[index] = COVER_FOR_CELL;
-                    case 1 -> {
-                        field[index] = COVERED_MINE_CELL;
-                        mines.add(new Point(i, j));
+            List<Point> mines = new ArrayList<>();
+            List<Point> treasures = new ArrayList<>();
+
+            for (int i = 0; i < 8; i++) {
+                for (int j = 0; j < 8; j++) {
+                    int val = Integer.parseInt(rows.get(i)[j]);
+                    int index = i * 8 + j;
+                    switch (val) {
+                        case 0 -> field[index] = COVER_FOR_CELL;
+                        case 1 -> {
+                            field[index] = COVERED_MINE_CELL;
+                            mines.add(new Point(i, j));
+                        }
+                        case 2 -> {
+                            field[index] = COVERED_TREASURE_CELL;
+                            treasures.add(new Point(i, j));
+                        }
+                        default -> throw new IllegalArgumentException("Invalid cell value: must be 0, 1, or 2");
                     }
-                    case 2 -> {
-                        field[index] = COVERED_TREASURE_CELL;
-                        treasures.add(new Point(i, j));
-                    }
-                    default -> throw new IllegalArgumentException("Invalid cell value: must be 0, 1, or 2");
                 }
-=======
-          HashSet<Integer> usedMineColumns = new HashSet<>();
-          HashSet<Integer> usedMineRows = new HashSet<>();
-          
-          int numOfTreasures = 0;
-          int numOfMines = 0;
-          N_ROWS = rows.size();
-          N_COLS = rows.get(0).length;
-          allCells = N_ROWS * N_COLS;
-          BOARD_WIDTH = N_COLS * CELL_SIZE + 1;
-          BOARD_HEIGHT = N_ROWS * CELL_SIZE + 1;
-          field = new int[allCells];
-          
-          List <Integer> positionsOfMines = new ArrayList<>();
-          for (int i = 0; i < N_ROWS; i++) {
-              for (int j = 0; j < N_COLS; j++) {
-                  int index = i * N_COLS + j;
-                  int val = Integer.parseInt(rows.get(i)[j]);
-                  switch (val) {
-                      case 0: 
-                        field[index] = COVER_FOR_CELL;
-                        break;
-                      case 1:  
-                        field[index] = COVERED_MINE_CELL;
-                        positionsOfMines.add(index);
-                        
-                        if(!usedMineColumns.contains(j)) {
-                          usedMineColumns.add(j);
-                        }
-                        
-                        if(!usedMineRows.contains(i)) {
-                          usedMineRows.add(i);
-                        }
-                        
-                        
-                        
-                        numOfMines++;
-                        break;
-                      case 2: 
-                        field[index] = COVERED_TREASURE_CELL;
-                        numOfTreasures++;
-                        break;
-                      default: 
-                        field[index] = COVER_FOR_CELL;
-                        break;
-                  }
-              }
-          }
-          // Update neighbor cells for mines
-          for (int i = 0; i < allCells; i++) {
-              if (field[i] == COVERED_MINE_CELL) {
-                  updateNeighbors(i);
-              }
-          }
-
-         minesLeft = (int) java.util.Arrays.stream(field)
-              .filter(f -> f == COVERED_MINE_CELL)
-              .count();
-          coinCount = 0;
-          continueCost = 1;
-          inGame = true;
-          isInMenu = false;
-          showGameOverOverlay = false;
-          
-         if( numOfMines >= 8) {
-        	 int firstColumn = positionsOfMines.get(0) % N_COLS;
-        	 boolean allInSameColumn = true;
-        	 for(int i=0; i<Math.min(8, positionsOfMines.size());i++) {
-        		 if(positionsOfMines.get(i)% N_COLS != firstColumn) {
-        			 allInSameColumn = false;
-        		 }
-        		 
-        	 }
-        	 
-        	 if (allInSameColumn) {
-        		 firstEightInOneColumn  = true;
-        		 //redistributes mines 
-        		redistributeMines(positionsOfMines,firstColumn);
-        		 
-        		 
-        	 }
-        	 
-         }
-          
-          
-          
-          
-          
-          
-          
-          if(numOfTreasures <= 9) {
-            noMoreThanNineTreasures = true;
-          }
-          
-          for(int i = 0; i < N_COLS; i++) {
-            if(usedMineColumns.contains(i) && usedMineRows.contains(i) && numOfMines > 8) {
-              noFirstEightAdjacent = true;
->>>>>>> e66c81ea08d7eaec6811f6fc0b56170b89d8c3f2
             }
-        }
 
-        // === VALIDATION LOGIC ===
-        if (mines.size() != 10) throw new IllegalArgumentException("Test board must contain exactly 10 mines.");
-        if (treasures.size() > 9) throw new IllegalArgumentException("Test board must not contain more than 9 treasures.");
+            // === VALIDATION LOGIC ===
+            if (mines.size() != 10) throw new IllegalArgumentException("Test board must contain exactly 10 mines.");
+            if (treasures.size() > 9) throw new IllegalArgumentException("Test board must not contain more than 9 treasures.");
 
-        Set<Integer> uniqueRows = new HashSet<>();
-        Set<Integer> uniqueCols = new HashSet<>();
-        boolean hasDiagonalMine = false;
+            Set<Integer> uniqueRows = new HashSet<>();
+            Set<Integer> uniqueCols = new HashSet<>();
+            boolean hasDiagonalMine = false;
 
-        // Validate first 8 mines
-        for (int k = 0; k < 8; k++) {
-            Point p = mines.get(k);
-            if (!uniqueRows.add(p.x)) throw new IllegalArgumentException("Duplicate row in first 8 mines.");
-            if (!uniqueCols.add(p.y)) throw new IllegalArgumentException("Duplicate column in first 8 mines.");
+            // Validate first 8 mines
+            for (int k = 0; k < 8; k++) {
+                Point p = mines.get(k);
+                if (!uniqueRows.add(p.x)) throw new IllegalArgumentException("Duplicate row in first 8 mines.");
+                if (!uniqueCols.add(p.y)) throw new IllegalArgumentException("Duplicate column in first 8 mines.");
 
-            if (p.x == p.y) hasDiagonalMine = true;
+                if (p.x == p.y) hasDiagonalMine = true;
 
-            for (int m = 0; m < k; m++) {
-                Point other = mines.get(m);
-                if (p.x == other.x || p.y == other.y)
-                    throw new IllegalArgumentException("First 8 mines must not be adjacent by row or column.");
+                for (int m = 0; m < k; m++) {
+                    Point other = mines.get(m);
+                    if (p.x == other.x || p.y == other.y)
+                        throw new IllegalArgumentException("First 8 mines must not be adjacent by row or column.");
+                }
             }
-        }
 
-        if (!hasDiagonalMine) throw new IllegalArgumentException("One of the first 8 mines must be on the diagonal (row == col).");
+            if (!hasDiagonalMine) throw new IllegalArgumentException("One of the first 8 mines must be on the diagonal (row == col).");
 
-        Point ninth = mines.get(8);
-        Point tenth = mines.get(9);
+            Point ninth = mines.get(8);
+            Point tenth = mines.get(9);
 
-        boolean ninthAdjacent = false;
-        for (int i = 0; i < 8; i++) {
-            Point p = mines.get(i);
-            if (p.x == ninth.x || p.y == ninth.y) {
-                ninthAdjacent = true;
-                break;
+            boolean ninthAdjacent = false;
+            for (int i = 0; i < 8; i++) {
+                Point p = mines.get(i);
+                if (p.x == ninth.x || p.y == ninth.y) {
+                    ninthAdjacent = true;
+                    break;
+                }
             }
-        }
 
-        if (!ninthAdjacent) throw new IllegalArgumentException("9th mine must be adjacent to one of the first 8 mines by row or column.");
+            if (!ninthAdjacent) throw new IllegalArgumentException("9th mine must be adjacent to one of the first 8 mines by row or column.");
 
-        boolean tenthIsolated = true;
-        for (int i = 0; i < 9; i++) {
-            Point p = mines.get(i);
-            if (p.x == tenth.x || p.y == tenth.y) {
-                tenthIsolated = false;
-                break;
+            boolean tenthIsolated = true;
+            for (int i = 0; i < 9; i++) {
+                Point p = mines.get(i);
+                if (p.x == tenth.x || p.y == tenth.y) {
+                    tenthIsolated = false;
+                    break;
+                }
             }
-        }
 
-        if (!tenthIsolated) throw new IllegalArgumentException("10th mine must be isolated — no shared rows/cols with other mines.");
+            if (!tenthIsolated) throw new IllegalArgumentException("10th mine must be isolated — no shared rows/cols with other mines.");
 
-        // === IF WE REACH HERE, BOARD IS VALID ===
-        for (int i = 0; i < allCells; i++) {
-            if (field[i] == COVERED_MINE_CELL) {
-                updateNeighbors(i);
+            // === IF WE REACH HERE, BOARD IS VALID ===
+            for (int i = 0; i < allCells; i++) {
+                if (field[i] == COVERED_MINE_CELL) {
+                    updateNeighbors(i);
+                }
             }
+
+            minesLeft = 10;
+            coinCount = 0;
+            continueCost = 1;
+            inGame = true;
+            isInMenu = false;
+            showGameOverOverlay = false;
+            updateStatusbar();
+
+            Container parent = getParent();
+            while (parent != null && !(parent instanceof JFrame)) {
+                parent = parent.getParent();
+            }
+            if (parent instanceof JFrame) {
+                ((JFrame) parent).pack();
+            }
+
+            repaint();
+            System.out.println("Test board loaded successfully.");
+            isInTestBoard = true;
+
+        } catch (Exception e) {
+            System.out.println("Failed to load test board: " + e.getMessage());
+            statusbar.setText("Invalid test board: " + e.getMessage());
+            promptTestModeAgain(); // <== You'll need to implement this
         }
-
-        minesLeft = 10;
-        coinCount = 0;
-        continueCost = 1;
-        inGame = true;
-        isInMenu = false;
-        showGameOverOverlay = false;
-        updateStatusbar();
-
-        Container parent = getParent();
-        while (parent != null && !(parent instanceof JFrame)) {
-            parent = parent.getParent();
-        }
-        if (parent instanceof JFrame) {
-            ((JFrame) parent).pack();
-        }
-
-        repaint();
-        System.out.println("Test board loaded successfully.");
-        isInTestBoard = true;
-
-    } catch (Exception e) {
-        System.out.println("Failed to load test board: " + e.getMessage());
-        statusbar.setText("Invalid test board: " + e.getMessage());
-        promptTestModeAgain(); // <== You'll need to implement this
     }
-}
 //Here's a little extra for testing multiple times 
 private void promptTestModeAgain() {
     isInMainmenu = true;
@@ -753,8 +665,14 @@ private void promptTestModeAgain() {
         //Load Button
         graphicHandler.createButton(getWidth(), getHeight(), 45, 20, 45, 20, getWidth() - 20, getHeight() - 12,  -getWidth() + 110, getHeight() - 45, "Load", Color.gray);
         //back button
-        graphicHandler.createButton(getWidth(), getHeight(), 80, 20, 80, 20,
-            getWidth() - 90, getHeight() - 80, getWidth() - 90, getHeight() - 80, "Back", Color.gray);
+        if(N_MINES == 10) {
+        	graphicHandler.createButton(getWidth(), getHeight(), 10, 20, 80, 20, (getWidth() /2) + 15, getHeight() - 10, (getWidth() / 2) - 45, getHeight() - 50, "<", Color.gray);
+        }else if(N_MINES == 40) {
+        	graphicHandler.createButton(getWidth(), getHeight(), 80, 20, 80, 20, (getWidth() /2) - 50, getHeight() - 10, (getWidth() / 2) - 30, getHeight() - 50, "Back", Color.gray);
+        }else if(N_MINES == 99) {
+        	graphicHandler.createButton(getWidth(), getHeight(), 80, 20, 80, 20, (getWidth() /2) - 150, getHeight() - 10, (getWidth() / 2) - 140, getHeight() - 50, "Back", Color.gray);
+        }
+        
 
         if (uncover == 0 && inGame) {
             inGame = false; // Game won
@@ -787,6 +705,7 @@ private void promptTestModeAgain() {
         }
       }else {
         if(isInMainmenu) {
+        	super.paintComponent(g);
           
           graphicHandler.createText(getWidth(), getHeight(), 150, 250, 24, 1, 150, 150, "MINESWEEPER+" , Color.red);
           
@@ -812,6 +731,13 @@ private void promptTestModeAgain() {
           
           //large field button
           graphicHandler.createButton(getWidth(), getHeight(), 150, 25, 100, 175, 100, 230 + (110 - 30), 150, 110, "Large", Color.gray);
+          
+          graphicHandler.createButton(getWidth(), getHeight(), 80, 20, 80, 20, (getWidth() /2) - 50, getHeight() - 10, (getWidth() / 2) - 30, getHeight() - 50, "Back", Color.gray);
+        }else if(isInTextSize) {
+        	super.paintComponent(g);
+        }else if(back) {
+        	super.paintComponent(g);
+        	back = false;
         }
       }
       
@@ -875,6 +801,21 @@ private void promptTestModeAgain() {
           System.out.println("Error saving game: " + e.getMessage());
           statusbar.setText("Error Saving Game, please try again");
       }
+    }
+    
+    private void backButton() {
+    	System.out.println("Back clicked");
+        isInMenu = true;
+        isInMainmenu = true;
+        isInGUISize = false;
+        isInTextSize = false;
+        isInTextView = false;
+        isInTestBoard = false;
+        inGame = false;
+        back = true;
+        removeAll(); // Clear any components that might have been added
+        initMenu(); // Re-initialize the menu state
+        repaint();
     }
     
     private void loadGame(String filename) {
@@ -1037,7 +978,10 @@ private void promptTestModeAgain() {
                 });
                 //TextMode
                 handleClick(150, 25, 150, 25, x, y, true, () -> {
+                 
+                  isInMainmenu = false;
                   initTextSizeMenu();
+                  repaint();
                 });
                 //Load Game
                 handleClick(72, 25, 150, 135, x, y, true, () -> {
@@ -1104,6 +1048,11 @@ private void promptTestModeAgain() {
                   initBoard();
                   repaint();
                 });
+                
+                //back button
+                handleClick(80, 20, (getWidth() / 2) - 30, getHeight() - 50, x, y, true, () -> {
+            		backButton();
+            	});
               }
               else if (inGame) {
                 handleClick(45, 20, getWidth() - 10, getHeight() - 45, x, y, true, () -> {
@@ -1121,6 +1070,23 @@ private void promptTestModeAgain() {
                     initLoadBoard();
                     repaint();
                 });
+                
+                //save button click handles
+                if(N_MINES == 10) {
+                	handleClick(10, 20, (getWidth() / 2) - 45, getHeight() - 50, x, y, true, () -> {
+                		backButton();
+                	});
+                }else if(N_MINES == 40) {
+                	handleClick(80, 20, (getWidth() / 2) - 30, getHeight() - 50, x, y, true, () -> {
+                		backButton();
+                	});
+                }else if(N_MINES == 99) {
+                	handleClick(80, 20, (getWidth() / 2) -140, getHeight() - 50, x ,y , true, () ->{
+                		backButton();
+                	});
+                }
+                
+                
                   // --- In-game left-click logic (revealing cells) ---
                   if (x < 0 || x >= BOARD_WIDTH || y < 0 || y >= BOARD_HEIGHT) return;
                   // index is already defined
